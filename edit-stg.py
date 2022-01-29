@@ -16,9 +16,11 @@ def make_fgelev_pipe(fgelev, fgscenery, fgdata):
 	env = os.environ.copy()
 	env["FG_SCENERY"] = os.pathsep.join(fgscenery)
 	env["FG_DATA"] = fgdata[0]
-	pipe = subprocess.Popen(args=[fgelev], env={**env, **os.environ}, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	pipe = subprocess.Popen(args=[fgelev, "--expire", "1"], env={**env, **os.environ}, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	pipe.stdout.flush()
 	pipe.stdout.readline()
+	pipe.stdin.flush()
+	pipe.stdin.flush()
 	return pipe
 
 def read_stg_file(path):
@@ -40,9 +42,11 @@ def read_stg_file(path):
 					offset = 0
 					skipnext = False
 					result.append(line)
+			elif line.strip() == "": # empty line
+				result.append(line)
 			else: # is an object
 				etype, *data = list(map(lambda s: s.strip(), line.split(" ")))
-				if etype in ["OBJECT_SHARED", "OBJECT_SHARED_AGL", "OBJECT_STATIC", "OBJECT_STATIC_AGL", "OBJECT_SIGN", "OBJECT_SIGN_AGL", "BUILDING_ROUGH", "BUILDING_DETAILED", "ROAD_ROUGH", "ROAD_DETAILED", "RAILWAY_ROUGH", "RAILWAY_DETAILED", "OBJECT_BUILDING_MESH_ROUGH", "OBJECT_BUILDING_MESH_DETAILED"]:
+				if etype in ["OBJECT_SHARED", "OBJECT_SHARED_AGL", "OBJECT_STATIC", "OBJECT_STATIC_AGL", "OBJECT_SIGN", "OBJECT_SIGN_AGL", "BUILDING_ROUGH", "BUILDING_DETAILED", "OBJECT_ROAD_ROUGH", "OBJECT_ROAD_DETAILED", "OBJECT_RAILWAY_ROUGH", "OBJECT_RAILWAY_DETAILED", "OBJECT_BUILDING_MESH_ROUGH", "OBJECT_BUILDING_MESH_DETAILED"]:
 					if len(data) == 5:
 						objectfile, longitude, latitude, elevation, heading, pitch, roll = *data, 0, 0
 					elif len(data) == 7:
@@ -135,7 +139,7 @@ def recalc_elevs(stg_dict, elevpipe):
 							else:
 								print(f"Skipping {object['objectfile']}")
 							object["elevation"] += object["offset"]
-							print(f"Final elevation: {object['elevation']} meters")
+							print(f"Final elevation: {object['elevation']} meters, offset was {object['offset']}")
 	return stg_dict
 
 def write_stg_files(output_stg, outfiles):
@@ -195,7 +199,6 @@ def main():
 		"-e", "--fgelev",
 		help="Path to FGelev",
 		default="fgelev",
-		nargs=1
 	)
 	
 	argp.add_argument(
