@@ -1,0 +1,29 @@
+#!/usr/bin/env python
+#-*- coding:utf-8 -*-
+
+import argparse
+
+if __name__ == "__main__":
+	argp = argparse.ArgumentParser(description="javaprop2jsbcpct.py - converts JavaProp propeller data into Cp and Ct tables for a JSBsim propelller")
+	
+	argp.add_argument(
+		"-i", "--input-file",
+		help="File to read JavaProp data from",
+	)
+	
+	argp.add_argument(
+		"--interactive",
+		help="Read JavaProp data from standard input instead of a file, ignoring --input-file (disabled by default)",
+		nargs=0
+		type=bool,
+		default=False
+	)
+	
+	argp.add_argument(
+		"--indentation",
+		help="Indentation to use (the argument of this option will be used as one level of indentation), defaults to tabs",
+		default="\t"
+	)
+	
+	args = argp.parse_args()
+	print(args)
