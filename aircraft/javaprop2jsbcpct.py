@@ -9,14 +9,13 @@ if __name__ == "__main__":
 	argp.add_argument(
 		"-i", "--input-file",
 		help="File to read JavaProp data from",
+		required=True
 	)
 	
 	argp.add_argument(
 		"--interactive",
+		action="store_true",
 		help="Read JavaProp data from standard input instead of a file, ignoring --input-file (disabled by default)",
-		nargs=0
-		type=bool,
-		default=False
 	)
 	
 	argp.add_argument(
