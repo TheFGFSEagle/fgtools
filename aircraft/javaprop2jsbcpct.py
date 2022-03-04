@@ -19,7 +19,7 @@ def parse_data_files(input_files, blade_angles):
 		
 		content = list(map(lambda s: s.strip().split("\t"), content))[2:]
 		for line in content:
-			av, cp, ct = float(line[0]), float(line[2]), float(line[3])
+			av, ct, cp = float(line[0]), float(line[2]), float(line[3])
 			data[angle]["Cp"].add_value(av, cp)
 			data[angle]["Ct"].add_value(av, ct)
 	
