@@ -47,7 +47,7 @@ def make_tables(data, maximum, indentation="\t", resolution=0.05):
 
 
 if __name__ == "__main__":
-	argp = argparse.ArgumentParser(description="javaprop2jsbcpct.py - converts JavaProp propeller data into Cp and Ct tables for a JSBsim propeller")
+	argp = argparse.ArgumentParser(description="javaprop2jsbcpct.py - converts JavaProp propeller data into Cp and Ct tables for a JSBsim propeller\nReplace the C_THRUST and C_POWER tables in your JSBsim propeller file with the output of this script.")
 	
 	argp.add_argument(
 		"-i", "--input-file",
