@@ -79,7 +79,7 @@ def print_table(cases, coeff, indent, precision):
 	print(indent + '<independentVar lookup="column">aero/beta-deg</independentVar>')
 	#print(indent + '<independentVar lookup="table">velocities/mach</independentVar>')
 	print(indent + "<tableData>")
-	print(indent + indent + indent + indent.join(map(str, coeffs[list(coeffs.keys())[0]].keys())))
+	print(indent + indent + indent + (indent + indent).join(map(str, coeffs[list(coeffs.keys())[0]].keys())))
 	for AoA in coeffs:
 		print(indent + indent + str(AoA), end="")
 		for Beta in coeffs[AoA]:
