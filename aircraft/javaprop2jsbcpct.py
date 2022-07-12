@@ -3,6 +3,7 @@
 
 import argparse
 import os
+import natsort
 from fgtools.utils.interpolator import Interpolator
 
 
@@ -93,18 +94,27 @@ if __name__ == "__main__":
 	
 	args = argp.parse_args()
 	
-	for path in args.input_files:
-		if not os.path.isfile(path):
-			print(f"Error: input file {path} not found, exiting")
-			sys.exit(1)
+	paths = []
 	
-	if len(args.blade_angles) < len(args.input_files):
+	for path in args.input_files:
+		if not os.path.exists(path):
+			print(f"Error: input file / directory {path} not found, exiting")
+			sys.exit(1)
+		
+		if os.path.isfile(path):
+			paths.append(path)
+		else:
+			for file in natsort.realsorted(os.listdir(path)):
+				paths.append(os.path.join(path, file))
+	
+	if len(args.blade_angles) < len(paths):
 		print("Error: less blade angles than input files")
-	elif len(args.blade_angles) > len(args.input_files):
-		args.blade_angles, rest = args.blade_angles[:len(args.input_files) + 1]
+	elif len(args.blade_angles) > len(paths):
+		args.blade_angles, rest = args.blade_angles[:len(paths) + 1]
 		print(f"Warning: skipping {len(rest)} blade angles because no corresponding data file was specified")
 	
-	data = parse_data_files(args.input_files, args.blade_angles)
+	print(paths)
+	data = parse_data_files(paths, args.blade_angles)
 	output = make_tables(data, args.max, args.indentation, args.resolution)
 	
 	
