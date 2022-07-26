@@ -52,7 +52,7 @@ def write_xml_files(texture_paths, lit_suffix, overwrite):
 		
 				if not os.path.isfile(texture_lit_path):
 					print("Night texture", texture_lit_path, "does not exist - skipping objects")
-					break
+					continue
 				
 				xml_f.write("""
 	<animation>
