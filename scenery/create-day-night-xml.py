@@ -8,24 +8,24 @@ def get_texture_paths(folder="."):
 		path = os.path.relpath(os.path.join(folder, name), start=folder)
 		if name.endswith(".ac"):
 			with open(path, "r") as f:
-			   if not path in texture_paths:
-				   texture_paths[path] = {}
-			   object = ""
-			   for line in f:
-				   if line.strip().startswith("name"):
-					   object = line.split('"')[1]
-					   if object == "world":
-						   object = ""
-						   continue
-				   
-				   if line.strip().startswith("texture") and object:
-					   texture_path = line.split('"')[1]
-					   if not texture_path in texture_paths[path]:
-						   texture_paths[path][texture_path] = []
-					   texture_paths[path][texture_path].append(object)
-			   
-			   if not texture_paths[path]:
-				   print(path, "contains no texture, skipping")
+				if not path in texture_paths:
+					texture_paths[path] = {}
+				object = ""
+				for line in f:
+					if line.strip().startswith("name"):
+						object = line.split('"')[1]
+						if object == "world":
+							object = ""
+							continue
+					
+					if line.strip().startswith("texture") and object:
+						texture_path = line.split('"')[1]
+						if not texture_path in texture_paths[path]:
+							texture_paths[path][texture_path] = []
+						texture_paths[path][texture_path].append(object)
+				
+				if not texture_paths[path]:
+					print(path, "contains no texture, skipping")
 	
 	if not texture_paths:
 		print(os.path.abspath(folder), "does not contain any AC files - exiting")
@@ -37,8 +37,8 @@ def write_xml_files(texture_paths, lit_suffix, overwrite):
 	for ac_path in texture_paths:
 		xml_path = ac_path.replace(".ac", ".xml")
 		if os.path.isfile(xml_path) and not overwrite:
-			 print("XML file", xml_path, "already exists - skipping")
-			 continue
+			print("XML file", xml_path, "already exists - skipping")
+			continue
 		
 		with open(xml_path, "w") as xml_f:
 			xml_f.write("""<?xml version="1.0" encoding="utf-8"?>
@@ -67,14 +67,14 @@ def write_xml_files(texture_paths, lit_suffix, overwrite):
 				for object in texture_paths[ac_path][texture_path]:
 					xml_f.write("		<object-name>%s</object-name>" % object)
 				
-				xml_f.write("""		 <emission>
+				xml_f.write("""		<emission>
 			 <red>1</red>
-			 <green>1</green>   
+			 <green>1</green>
 			 <blue>1</blue>
 		 </emission>
 		 <texture>%s</texture>
- 	</animation>""" % texture_lit_path)
- 				xml_f.write("""
+	</animation>""" % texture_lit_path)
+				xml_f.write("""
 	
 	<animation>
 		<type>material</type>
@@ -83,21 +83,21 @@ def write_xml_files(texture_paths, lit_suffix, overwrite):
 				<property>/sim/time/sun-angle-rad</property>
 				<value>1.49</value>
 			</less-than-equals>
-		 </condition>""")
-		 		
+		</condition>""")
+				
 				for object in texture_paths[ac_path][texture_path]:
 					xml_f.write("		<object-name>%s</object-name>" % object)
 				
-				xml_f.write("""		 <emission>
-			 <red>0</red>
-			 <green>0</green>
-			 <blue>0</blue>
-		 </emission>
-		 <texture>%s</texture>""" % texture_path)
-		 	
-		 		xml_f.write("</animation>")
-	 	
-	 		xml_f.write("</PropertyList>\n")
+				xml_f.write("""		<emission>
+			<red>0</red>
+			<green>0</green>
+			<blue>0</blue>
+		</emission>
+		<texture>%s</texture>""" % texture_path)
+			
+				xml_f.write("</animation>")
+		
+			xml_f.write("</PropertyList>\n")
 
 def main():
 	argp = argparse.ArgumentParser()
