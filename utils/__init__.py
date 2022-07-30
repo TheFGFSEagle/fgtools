@@ -24,9 +24,9 @@ def get_fg_tile_span(lat):
 		return 0.5
 	elif lat >= -83:
 		return 1
-	elif lat >= -86
+	elif lat >= -86:
 		return 2
-	elif lat >= -89
+	elif lat >= -89:
 		return 4
 	else:
 		return 12

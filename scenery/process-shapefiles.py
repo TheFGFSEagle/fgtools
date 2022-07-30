@@ -29,24 +29,25 @@ It will merge / slice the files accordingly with ogr2ogr.
 """
 #As the final step, the resulting shapefiles will be decoded into files that tg-constrcut can read using ogr-decode.
 #"""
-catnames = ["buildings", "landuse", "natural", "places", "pofw", "pois", "railways", "roads", "traffic", "transport", "water", "waterways"]
+catnames = ["buildings_a", "landuse_a", "natural", "natural_a", "places", "places_a", "pofw", "pofw_a", "pois", "pois_a", "railways", "roads", "traffic", "traffic_a", "transport", "transport_a", "water_a", "waterways"]
 tmpdir = tempfile.TemporaryDirectory()
 
 def find(src):
 	osm_shapefiles = []
 	files = glob.glob(os.path.join(src, "**", "**.shp"))
 	for file in files:
-		if "osm" in os.path.split(file):
+		if "osm" in os.path.split(file)[-1]:
 			osm_shapefiles.append(file)
+	
 	return sorted(osm_shapefiles)
 
 def categorize(shapefiles):
-	categorized = []
+	categorized = dict((catname, []) for catname in catnames)
 	
 	for shapefile in shapefiles:
 		name = os.path.split(shapefile)[-1].split(".")[0]
 		
-		name = re.sub(r"gis|osm|a|free|_|(1-9)", "", name) # gis_osm_landuse_a_free_1 becomes just landuse
+		name = re.sub(r"gis|osm|free|_(?!a)|\d", "", name) # gis_osm_landuse_a_free_1 becomes just landuse_a
 		# Skip if the name is not a recognized catname
 		if not name in catnames:
 			continue
@@ -83,9 +84,12 @@ def get_extents(categorized):
 
 def merge_slice(shapefiles, coords, dest):
 	for category in shapefiles:
-		files = ['"' + shapefile["path"] + '"' for shapefile in shapefiles[category]]
-		cmd = f'ogr2ogr -f "ESRI Shapefile" {os.path.join(dest, category + ".shp")} {" ".join(files)} -clipsrc {coords["xll"]} {coords["yll"]} {coords["xur"]} {coords["yur"]} -progress -single -lco ENCODING=UTF-8'
-		subprocess.run(cmd, shell=True)
+		print(f"Merging and slicing {category} …")
+		dest_file = os.path.join(dest, category + ".shp")
+		os.path.isfile(dest_file) and os.remove(dest_file)
+		for shapefile in shapefiles[category]:
+			cmd = f'ogr2ogr -f "ESRI Shapefile" "{dest_file}" "{shapefile["path"]}" -clipsrc {coords["xll"]} {coords["yll"]} {coords["xur"]} {coords["yur"]} -progress -lco ENCODING=UTF-8 -append'
+			subprocess.run(cmd, shell=True)
 
 #def decode(shapefiles, dest):
 #	pass
@@ -119,15 +123,11 @@ if __name__ == "__main__":
 	)
 	
 	argp.add_argument(
-		"-l", "--lower-left",
-		help="coordinates of the lower left corner of the bounding box of the region that shapefiles should be processed for (default: %(default)s)",
-		default="-180,-90"
-	)
-	
-	argp.add_argument(
-		"-u", "--upper-right",
-		help="coordinates of the upper-right corner of the bounding box of the region that shapefiles should be processed for (default: %(default)s)",
-		default="180,90"
+		"-b", "--bbox",
+		help="coordinates of the lbounding box of the region that shapefiles should be processed for (default: %(default)s)",
+		default=[-180, -90, 180, 90],
+		nargs=4,
+		type=float
 	)
 	
 	args = argp.parse_args()
@@ -138,9 +138,7 @@ if __name__ == "__main__":
 
 	src = args.input_folder
 	dest = args.output_folder
-	xll, yll = args.lower_left.split(",")
-	xur, yur = args.upper_right.split(",")
-	coords = {"xll": xll, "yll": yll, "xur": xur, "yur": yur}
+	coords = dict(zip(["xll", "yll", "xur", "yur"], args.bbox))
 	
 	if not os.path.isdir(src):
 		print(f"ERROR: input folder {src} does not exist, exiting")
@@ -154,4 +152,4 @@ if __name__ == "__main__":
 	#extents = get_extents(categorized)
 	#shapefiles = merge_slice(extents, coords, dest)
 	shapefiles = merge_slice(categories, coords, dest)
-	#result = shapefiles.decode(shapefiles, dest)
+	#result = decode(shapefiles, dest)

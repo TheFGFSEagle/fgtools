@@ -34,7 +34,7 @@ def filter_airports_list(airports_count, airports_list, icaos, bbox):
 		if icaos and any(icao in (airport.get("AirportCode", None), airport_metadata.get("icao_code", None)) for icao in icaos):
 			airports_list_filtered.append(airport)
 		elif bbox:
-			if bbox[0] < airport["Latitude"] < bbox[2] and bbox[1] < airport["Longitude"] < bbox[3]:
+			if bbox[1] < airport["Latitude"] < bbox[3] and bbox[0] < airport["Longitude"] < bbox[2]:
 				airports_list_filtered.append(airport)
 	print("Filtering airports … done                                                                                                                                  ")
 	
