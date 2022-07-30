@@ -29,24 +29,27 @@ def filter_airports_list(airports_count, airports_list, icaos, bbox):
 	i = 0
 	for airport in airports_list:
 		print(f"Filtering airports … {i / airports_count * 100:.1f}% ({i} of {airports_count})\r", end="")
+		i += 1
 		airport_metadata = airport.get("metadata", {}) or {}
 		if icaos and any(icao in (airport.get("AirportCode", None), airport_metadata.get("icao_code", None)) for icao in icaos):
 			airports_list_filtered.append(airport)
 		elif bbox:
 			if bbox[0] < airport["Latitude"] < bbox[2] and bbox[1] < airport["Longitude"] < bbox[3]:
 				airports_list_filtered.append(airport)
-		i += 1
 	print("Filtering airports … done                                                                                                                                  ")
 	
 	return airports_list_filtered
 
-def write_aptdat_files(airports_list, output, txt_output):
+def write_aptdat_files(airports_list, output, txt_output, overwrite):
 	airports_count = len(airports_list)
 	i = 0
 	for airport in airports_list:
 		print(f"Downloading and writing airports … {i / airports_count * 100:.1f}% ({i} of {airports_count})\r", end="")
+		i += 1
 		airport_metadata = airport.get("metadata", {}) or {}
 		icao_code = airport_metadata.get("icao_code", None) or airport["AirportCode"]
+		if os.path.isfile(os.path.join(output, icao_code + ".dat")) and not overwrite:
+			continue
 		
 		scenery_id = airport.get("RecommendedSceneryId", None)
 		if not scenery_id:
@@ -73,7 +76,6 @@ def write_aptdat_files(airports_list, output, txt_output):
 					with open(os.path.join(txt_output, icao_code + ".txt"), "wb") as apttxt:
 						apttxt.write(scenery_txt.read())
 		
-		i += 1
 	print("Downloading and writing airports … done                                                                                                     ")
 
 if __name__ == "__main__":
@@ -110,6 +112,12 @@ if __name__ == "__main__":
 		default=""
 	)
 	
+	argp.add_argument(
+		"--overwrite",
+		help="Whether to redownload and overwrite apt.dat files that already exist in OUTPUT",
+		action="store_true"
+	)
+	
 	args = argp.parse_args()
 	
 	if not args.icao and not args.bbox:
@@ -127,5 +135,5 @@ if __name__ == "__main__":
 		for airport in airports_list_filtered:
 			print(airport["AirportCode"] + "\t", (airport.get("metadata", {}) or {}).get("icao_code", "\t"), sep="\t")
 	
-	write_aptdat_files(airports_list_filtered, args.output, args.txt_output)
+	write_aptdat_files(airports_list_filtered, args.output, args.txt_output, args.overwrite)
 
