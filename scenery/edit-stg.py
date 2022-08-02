@@ -7,21 +7,12 @@ import os
 import subprocess
 import time
 
+from fgtools.utils import make_fgelev_pipe
+
 class SkipReason:
 	NotFound = 0
 	DirEmpty = 1
 	NoSTG = 2
-
-def make_fgelev_pipe(fgelev, fgscenery, fgdata):
-	env = os.environ.copy()
-	env["FG_SCENERY"] = os.pathsep.join(fgscenery)
-	env["FG_DATA"] = fgdata[0]
-	pipe = subprocess.Popen(args=[fgelev, "--expire", "1"], env={**env, **os.environ}, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-	pipe.stdout.flush()
-	pipe.stdout.readline()
-	pipe.stdin.flush()
-	pipe.stdin.flush()
-	return pipe
 
 def read_stg_file(path):
 	result = []
@@ -191,7 +182,6 @@ def main():
 	argp.add_argument(
 		"-d", "--fgdata",
 		help="Path to FlightGear data directory.",
-		nargs=1,
 		default="~/fgdata"
 	)
 	

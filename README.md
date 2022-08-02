@@ -18,3 +18,6 @@ Note: this is lost when you close the terminal / console, so you have to run thi
 ### Windows
 _I don't have Windows so cannot provide any instructions - contributions by Windows users welcome !_
 
+
+## Credits
+* dsftxt2stg-lookup.py taken and modified from https://github.com/mherweg/d-laser-fgtools/library.txt
