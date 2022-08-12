@@ -8,6 +8,7 @@ import subprocess
 import time
 
 from fgtools.utils import make_fgelev_pipe
+from fgtools import utils.files
 
 class SkipReason:
 	NotFound = 0
@@ -167,7 +168,7 @@ def main():
 	
 	argp.add_argument(
 		"-i", "--input",
-		help="Input STG file. Mandatory, more than one file / directory can be passed",
+		help="Input STG file / folder containing such files. Mandatory, more than one file / directory can be passed",
 		nargs="+",
 		required=True
 	)
@@ -199,7 +200,7 @@ def main():
 	)
 	
 	args = argp.parse_args()
-	infiles = args.input
+	infiles = utils.files.find_input_files(args.input)
 	outfiles = args.output
 	fgdata = args.fgdata
 	fgscenery = args.fgscenery

@@ -3,6 +3,7 @@
 
 import math
 import os
+import sys
 import subprocess
 
 def get_fg_tile_span(lat):
@@ -92,6 +93,8 @@ def get_fg_tile_path(lon, lat):
 	return f"{hem}{int(top_lon):03d}{pole}{int(top_lat):02d}/{hem}{int(main_lon):03d}{pole}{int(main_lat):02d}/{get_fg_tile_index(lon, lat)}"
 
 def make_fgelev_pipe(fgelev, fgscenery, fgdata):
+	print("Creating pipe to fgelev … ", end="")
+	sys.stdout.flush()
 	env = os.environ.copy()
 	env["FG_SCENERY"] = os.pathsep.join(fgscenery)
 	env["FG_ROOT"] = fgdata
@@ -100,5 +103,25 @@ def make_fgelev_pipe(fgelev, fgscenery, fgdata):
 	pipe.stdout.readline()
 	pipe.stdin.flush()
 	pipe.stdin.flush()
+	print("done")
 	return pipe
+
+def isiterable(o, striterable=False):
+	if isinstance(o, str):
+		return striterable
+	else:
+		try:
+			iter(o)
+			return True
+		except TypeError:
+			return False
+
+def wrap_period(n, min, max):
+	while n > max:
+		n -= max - min
 	
+	while n < min:
+		n += max - min
+	
+	return n
+

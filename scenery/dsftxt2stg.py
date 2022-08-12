@@ -32,15 +32,6 @@ cessnas = [
 	"Cessna150_no_reg.ac"
 ]
 
-
-def find_txt_files(path):
-	found = []
-	for root, folders, files in os.walk(path):
-		for f in files:
-			if f.endswith(".txt"):
-				found.append(os.path.join(root, f))
-	return found
-
 def parse_txt_file(path):
 	with open(path) as f:
 		content = list(map(str.strip, f.readlines()))
@@ -167,14 +158,7 @@ if __name__ == "__main__":
 	
 	print("Searching for DSF/TXT files … ", end="")
 	sys.stdout.flush()
-	txt_files = []
-	for i in args.input:
-		if os.path.isdir(i):
-			txt_files += find_txt_files(i)
-		elif os.path.isfile(i):
-			txt_files.append(i)
-		else:
-			print(f"\rInput file / directory {i} does not exist - skipping\nSearching for DSF/TXT files … ", end="")
+	txt_files = utils.files.find_input_files(args.input)
 	print(f"done, found {len(txt_files)} files")
 	
 	objects = parse_txt_files(txt_files)
