@@ -12,6 +12,7 @@ import subprocess
 import tempfile
 
 from fgtools.utils import constants
+from fgtools.utils import files
 
 DESCRIPTION = """
 process-shapefiles.py - merges, slices, and decodes OSM shapefiles
@@ -29,17 +30,8 @@ It will merge / slice the files accordingly with ogr2ogr.
 """
 #As the final step, the resulting shapefiles will be decoded into files that tg-constrcut can read using ogr-decode.
 #"""
-catnames = ["buildings_a", "landuse_a", "natural", "natural_a", "places", "places_a", "pofw", "pofw_a", "pois", "pois_a", "railways", "roads", "traffic", "traffic_a", "transport", "transport_a", "water_a", "waterways"]
+catnames = ["landmass", "buildings_a", "landuse_a", "natural", "natural_a", "places", "places_a", "pofw", "pofw_a", "pois", "pois_a", "railways", "roads", "traffic", "traffic_a", "transport", "transport_a", "water_a", "waterways"]
 tmpdir = tempfile.TemporaryDirectory()
-
-def find(src):
-	osm_shapefiles = []
-	files = glob.glob(os.path.join(src, "**", "**.shp"))
-	for file in files:
-		if "osm" in os.path.split(file)[-1]:
-			osm_shapefiles.append(file)
-	
-	return sorted(osm_shapefiles)
 
 def categorize(shapefiles):
 	categorized = dict((catname, []) for catname in catnames)
@@ -111,14 +103,14 @@ if __name__ == "__main__":
 	argp.add_argument(
 		"-i", "--input-folder",
 		help="folder containing folder 'shapefiles_raw' containing folders containing unprocessed shapefiles(default: %(default)s)",
-		default="./data",
+		default="./data/shapefiles_raw",
 		metavar="FOLDER"
 	)
 
 	argp.add_argument(
 		"-o", "--output-folder",
 		help="folder to put ogr-decode result into (default: %(default)s)",
-		default="./work",
+		default="./data/shapefiles",
 		metavar="FOLDER"
 	)
 	
@@ -147,7 +139,7 @@ if __name__ == "__main__":
 	if not os.path.isdir(dest):
 		os.makedirs(dest)
 	
-	shapefiles = find(src)
+	shapefiles = files.find_input_files(src, suffix=".shp")
 	categories = categorize(shapefiles)
 	#extents = get_extents(categorized)
 	#shapefiles = merge_slice(extents, coords, dest)

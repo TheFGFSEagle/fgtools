@@ -41,24 +41,26 @@ class Parking:
 		return {"A": 7.5, "B": 14, "C": 18, "D": 26, "E": 33, "F": 40}[code]
 	
 	def __repr__(self):
-		return (f'		<parking index="{self.index}" type="{self.type}" name="{self.name}" lon="{format_coord(self.lon, "lon")}"' +
-				f' lat="{format_coord(self.lat, "lat")}" heading="{self.hdg}" radius="{self.radius}"' +
-				f' pushBackRoute="{self.pushback_route}" airlineCodes="{",".join(self.airline_codes)}"/>\n')
+		return (f'		<parking index="{self.index}" type="{self.type}" name="{self.name}" ' + 
+				f'lon="{format_coord(self.lon, "lon")}" lat="{format_coord(self.lat, "lat")}" ' + 
+				f'heading="{self.hdg}" radius="{self.radius}" pushBackRoute="{self.pushback_route}" ' + 
+				f'airlineCodes="{",".join(self.airline_codes)}"/>\n')
 
 class TaxiNode:
 	def __init__(self, lon, lat, index):
 		self.index = index
 		self.lon = lon
 		self.lat = lat
-		self.on_runway = None
+		self.on_runway = False
 		self.holdPointType = "none"
 	
 	def __bool__(self):
 		return self.on_runway != None
 	
 	def __repr__(self):
-		return f'		<node index="{self.index}" lon="{format_coord(self.lon, "lon")} ' + 
-				f'lat="{format_coord(self.lat, "lat)}" isOnRunway="{int(self.on_runway)}" holdPointType="{self.holdPointType}"/>'
+		return (f'		<node index="{self.index}" lon="{format_coord(self.lon, "lon")} ' +
+				f'lat="{format_coord(self.lat, "lat")}" isOnRunway="{int(self.on_runway)}" ' + 
+				f'holdPointType="{self.holdPointType}"/>\n')
 
 class TaxiEdge:
 	def __init__(self, begin, end, is_on_runway, name):
@@ -66,14 +68,14 @@ class TaxiEdge:
 		self.end = end
 		self.name = name
 		self.is_on_runway = is_on_runway
-		self.is_pushback_route = None
+		self.is_pushback_route = False
 	
 	def __bool__(self):
 		return self.is_pushback_route != None
 	
 	def __repr__(self):
-		return f'		<arc begin="{self.begin}" end="{self.end}" ' + 
-				f'isPushBackRoute="{int(self.is_pushback_route)}" name="{self.name}"/>
+		return (f'		<arc begin="{self.begin}" end="{self.end}" ' + 
+				f'isPushBackRoute="{int(self.is_pushback_route)}" name="{self.name}"/>\n')
 
 class Runway:
 	def __init__(self, id1, lon1, lat1, displ1, stopway1, id2, lon2, lat2, displ2, stopway2):
@@ -276,9 +278,10 @@ def parse_aptdat_files(files, nav_dat, print_runway_lengths):
 			elif line[0] == 14:
 				towers[icao] = Tower(float(line[2]), float(line[1]), float(line[3]))
 			elif line[0] == 1201: # taxi node
-				taxi_nodes[icao].append(TaxiNode(float(line[2], float(line[1]), len(taxi_nodes[icao]))))
+				taxi_nodes[icao].append(TaxiNode(float(line[2]), float(line[1]), len(taxi_nodes[icao])))
 			elif line[0] == 1202: # taxi edge
-				taxi_edges[icao].append(TaxiEdge(int(line[1], int(line[2]), line[4] == "runway", line[5])))
+				if len(line) == 6:
+					taxi_edges[icao].append(TaxiEdge(int(line[1]), int(line[2]), line[4] == "runway", line[5]))
 		
 		if not icao in towers and len(runways[icao]) > 0:
 			runway_lons = []
@@ -305,10 +308,10 @@ def parse_aptdat_files(files, nav_dat, print_runway_lengths):
 		i += 1
 	print()
 	
-	if print_runway_lengths:
-		print("ICAO	Length	Lon	Lat Tile index")
-		for i in sorted(runway_lengths, key=lambda d: d["length-ft"])[:10]:
-			print(i["icao"], int(i["length-ft"]), i["lon"], i["lat"], utils.get_fg_tile_index(i["lon"], i["lat"]), sep="\t")
+	if print_runway_lengths > 0:
+		print("ICAO	Length	Lon		Lat		Tile index")
+		for i in sorted(runway_lengths, key=lambda d: d["length-ft"])[:print_runway_lengths]:
+			print(f'{i["icao"]:7s}', f'{int(i["length-ft"]):5d}', f'{i["lon"]:3.6f}', f'{i["lat"]:2.6f}', utils.get_fg_tile_index(i["lon"], i["lat"]), sep="\t")
 	
 	return parkings, taxi_nodes, taxi_edges, towers, runways, ils_d
 
@@ -326,22 +329,34 @@ def write_groundnet_files(parkings, taxi_nodes, taxi_edges, output, overwrite):
 		
 		if os.path.isfile(path) and not overwrite:
 			print(f"\rGroundnet file {path} already exists - skipping, use --overwrite                                             ")
+			continue
+		elif len(parkings[icao]) == 0 and (len(taxi_nodes) == 0 or len(taxi_edges == 0)):
+			continue
+		
 		with open(path, "w") as f:
 			utils.files.write_xml_header(f)
 			f.write("<groundnet>\n")
 			f.write("	<version>1</version>\n")
-			f.write("	<parkingList>\n")
+			if len(parkings[icao]) > 0:
+				f.write("	<parkingList>\n")
+				for p in parkings[icao]:
+				#	pushback_node = find_or_create_pushback_node(taxi_nodes, p)
+					f.write(repr(p))
+				f.write("	</parkingList>\n")
 			
-			for p in parkings[icao]:
-				pushback_node = find_or_create_pushback_node(taxi_nodes, p)
-				f.write(repr(p))
-			
-			f.write("	</parkingList>\n")
-			f.write("	<TaxiNodes>")
-			
-			for edge in taxi_edges[icao]:
-				taxi_nodes[icao][edge.begin].is_on_runway = edge.is_on_runway
-				taxi_nodes[icao][edge.end].is_on_runway = edge.is_on_runway
+			if len(taxi_nodes[icao]) > 0 and len(taxi_edges[icao]) > 0:
+				f.write("	<TaxiNodes>\n")
+				for edge in taxi_edges[icao]:
+					taxi_nodes[icao][edge.begin].is_on_runway = edge.is_on_runway
+					taxi_nodes[icao][edge.end].is_on_runway = edge.is_on_runway
+				for node in taxi_nodes[icao]:
+					f.write(repr(node))
+				f.write("	</TaxiNodes>\n")
+				
+				f.write("	<TaxiWaySegments>\n")
+				for edge in taxi_edges[icao]:
+					f.write(repr(edge))
+				f.write("	</TaxiWaySegments>\n")
 			
 			f.write("</groundnet>\n")
 		
@@ -378,6 +393,10 @@ def write_threshold_files(runways, output, overwrite):
 		
 		if os.path.isfile(path) and not overwrite:
 			print(f"\rThreshold file {path} already exists - skipping, use --overwrite                                             ")
+			continue
+		elif len(runways[icao]) == 0:
+			continue
+		
 		with open(path, "w") as f:
 			utils.files.write_xml_header(f)
 			f.write("<PropertyList>\n")
@@ -482,8 +501,10 @@ if __name__ == "__main__":
 	
 	argp.add_argument(
 		"-p", "--print-runway-lengths",
-		help="Only print runway lengths, do not write any files",
-		action="store_true"
+		help="Only print lengths of the N shortest runways, do not write any files",
+		type=int,
+		default=0,
+		metavar="N"
 	)
 	
 	args = argp.parse_args()
