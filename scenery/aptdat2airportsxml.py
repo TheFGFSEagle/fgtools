@@ -25,7 +25,7 @@ def get_icao_xml_path(icao, what):
 		return f"{icao[0]}/{icao[1]}/{icao[2]}/{icao}.{what}.xml"
 
 class Parking:
-	def __init__(self, index, type, name, lon, lat, hdg, radius=7.5, pushback_route=False, airline_codes=[]):
+	def __init__(self, index, type, name, lon, lat, hdg, radius=7.5, pushback_route=-1, airline_codes=[]):
 		self.index = index
 		self.type = type
 		self.name = name
@@ -41,10 +41,15 @@ class Parking:
 		return {"A": 7.5, "B": 14, "C": 18, "D": 26, "E": 33, "F": 40}[code]
 	
 	def __repr__(self):
-		return (f'		<parking index="{self.index}" type="{self.type}" name="{self.name}" ' + 
-				f'lon="{format_coord(self.lon, "lon")}" lat="{format_coord(self.lat, "lat")}" ' + 
-				f'heading="{self.hdg}" radius="{self.radius}" pushBackRoute="{self.pushback_route}" ' + 
-				f'airlineCodes="{",".join(self.airline_codes)}"/>\n')
+		s = (f'		<Parking index="{self.index}" type="{self.type}" name="{self.name}"' + 
+				f' lon="{format_coord(self.lon, "lon")}" lat="{format_coord(self.lat, "lat")}"' + 
+				f' heading="{self.hdg}" radius="{self.radius}"')
+		if self.pushback_route > -1:
+			s += f' pushBackRoute="{self.pushback_route}"'
+		if len(self.airline_codes) > 0:
+			s += f' airlineCodes="{",".join(self.airline_codes)}"'
+		s += '/>\n'
+		return s
 
 class TaxiNode:
 	def __init__(self, lon, lat, index):
@@ -58,7 +63,7 @@ class TaxiNode:
 		return self.on_runway != None
 	
 	def __repr__(self):
-		return (f'		<node index="{self.index}" lon="{format_coord(self.lon, "lon")} ' +
+		return (f'		<node index="{self.index}" lon="{format_coord(self.lon, "lon")}" ' +
 				f'lat="{format_coord(self.lat, "lat")}" isOnRunway="{int(self.on_runway)}" ' + 
 				f'holdPointType="{self.holdPointType}"/>\n')
 
