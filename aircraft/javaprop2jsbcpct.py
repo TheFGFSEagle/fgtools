@@ -28,7 +28,11 @@ def parse_data_files(input_files, blade_angles):
 
 
 def make_tables(data, maximum, indentation="\t", resolution=0.05):
-	Cp = Ct = indentation * 4 + (indentation * 2).join(map(str, data)) + "\n"
+	if len(data.keys()) > 1:
+		Cp = Ct = indentation * 4 + (indentation * 2).join(map(str, data.keys())) + "\n"
+	else:
+		Cp = Ct = ""
+	
 	av = 0
 	while av <= maximum:
 		av = round(av, 6)
@@ -113,10 +117,8 @@ if __name__ == "__main__":
 		args.blade_angles, rest = args.blade_angles[:len(paths) + 1]
 		print(f"Warning: skipping {len(rest)} blade angles because no corresponding data file was specified")
 	
-	print(paths)
 	data = parse_data_files(paths, args.blade_angles)
 	output = make_tables(data, args.max, args.indentation, args.resolution)
-	
 	
 	print(args.indentation + "<table name=\"C_THRUST\" type=\"internal\">")
 	print(args.indentation * 2 + "<tableData>")
