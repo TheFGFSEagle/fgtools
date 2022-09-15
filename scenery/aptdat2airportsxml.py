@@ -8,7 +8,7 @@ import statistics
 
 from fgtools.utils.files import find_input_files
 from fgtools import utils
-from fgtools.utils import geo
+from fgtools.geo import coord
 from fgtools.utils import unit_convert
 
 def format_coord(coord, lonlat):
@@ -19,10 +19,7 @@ def format_coord(coord, lonlat):
 	return f"{prefix}{i} {f * 60:.8f}"
 
 def get_icao_xml_path(icao, what):
-	if len(icao) == 3:
-		return f"{icao[0]}/{icao[1]}/{icao}.{what}.xml"
-	else:
-		return f"{icao[0]}/{icao[1]}/{icao[2]}/{icao}.{what}.xml"
+	return f"{icao[0]}/{icao[1]}/{icao[2]}/{icao}.{what}.xml"
 
 class Parking:
 	def __init__(self, index, type, name, lon, lat, hdg, radius=7.5, pushback_route=-1, airline_codes=[]):
@@ -42,7 +39,7 @@ class Parking:
 	
 	def __repr__(self):
 		s = (f'		<Parking index="{self.index}" type="{self.type}" name="{self.name}"' + 
-				f' lon="{format_coord(self.lon, "lon")}" lat="{format_coord(self.lat, "lat")}"' + 
+				f' lat="{format_coord(self.lat, "lat")}" lon="{format_coord(self.lon, "lon")}"' + 
 				f' heading="{self.hdg}" radius="{self.radius}"')
 		if self.pushback_route > -1:
 			s += f' pushBackRoute="{self.pushback_route}"'
@@ -63,66 +60,69 @@ class TaxiNode:
 		return self.on_runway != None
 	
 	def __repr__(self):
-		return (f'		<node index="{self.index}" lon="{format_coord(self.lon, "lon")}" ' +
-				f'lat="{format_coord(self.lat, "lat")}" isOnRunway="{int(self.on_runway)}" ' + 
-				f'holdPointType="{self.holdPointType}"/>\n')
+		return (f'		<node index="{self.index}" lat="{format_coord(self.lat, "lat")}"' +
+				f' lon="{format_coord(self.lon, "lon")}" isOnRunway="{int(self.on_runway)}"' + 
+				f' holdPointType="{self.holdPointType}"/>\n')
 
 class TaxiEdge:
-	def __init__(self, begin, end, is_on_runway, name):
+	def __init__(self, begin, end, bidirectional, is_on_runway, name):
 		self.begin = begin
 		self.end = end
 		self.name = name
+		self.bidirectional = bidirectional
 		self.is_on_runway = is_on_runway
 		self.is_pushback_route = False
 	
 	def __bool__(self):
 		return self.is_pushback_route != None
 	
+	def __contains__(self, node):
+		return node.index in (self.begin, self.end)
+	
 	def __repr__(self):
-		return (f'		<arc begin="{self.begin}" end="{self.end}" ' + 
+		s = (f'		<arc begin="{self.begin}" end="{self.end}" ' + 
 				f'isPushBackRoute="{int(self.is_pushback_route)}" name="{self.name}"/>\n')
+		if self.bidirectional:
+			s += (f'		<arc begin="{self.end}" end="{self.begin}" ' + 
+				f'isPushBackRoute="{int(self.is_pushback_route)}" name="{self.name}"/>\n')
+		return s
 
 class Runway:
 	def __init__(self, id1, lon1, lat1, displ1, stopway1, id2, lon2, lat2, displ2, stopway2):
-		self.lon1 = lon1
-		self.lat1 = lat1
+		self.coord1 = coord.Coord(lon1, lat1)
 		self.id1 = id1
 		self.displ1 = displ1
 		self.stopway1 = stopway1
-		self.lon2 = lon2
-		self.lat2 = lat2
+		self.coord2 = coord.Coord(lon2, lat2)
 		self.id2 = id2
 		self.displ2 = displ2
 		self.stopway2 = stopway2
 	
 	def get_length_m(self):
-		return geo.great_circle_distance_m(self.lon1, self.lat1, self.lon2, self.lat2)
+		return self.coord1.distance_m(self.coord2)
 	
 	def get_length_ft(self):
 		return unit_convert.m2ft(self.get_length_m())
 	
 	def get_heading1_deg(self):
-		return geo.get_bearing_deg(self.lon1, self.lat1, self.lon2, self.lat2)
+		return self.coord2.angle(self.coord1)
 	
 	def get_heading2_deg(self):
-		brg = self.get_heading1_deg() + 180
-		while brg >= 360:
-			brg -= 360
-		return brg
+		return self.coord1.angle(self.coord2)
 	
 	def __repr__(self):
 		return f"""	<runway>
 		<threshold>
-			<lon>{self.lon1}</lon>
-			<lat>{self.lat1}</lat>
+			<lat>{self.coord1.lat}</lat>
+			<lon>{self.coord1.lon}</lon>
 			<rwy>{self.id1}</rwy>
 			<hdg-deg>{self.get_heading1_deg():.2f}</hdg-deg>
 			<displ-m>{self.displ1}</displ-m>
 			<stopw-m>{self.stopway1}</stopw-m>
 		</threshold>
 		<threshold>
-			<lon>{self.lon2}</lon>
-			<lat>{self.lat2}</lat>
+			<lat>{self.coord2.lat}</lat>
+			<lon>{self.coord2.lon}</lon>
 			<rwy>{self.id2}</rwy>
 			<hdg-deg>{self.get_heading2_deg():.2f}</hdg-deg>
 			<displ-m>{self.displ2}</displ-m>
@@ -144,8 +144,8 @@ class Tower:
 	def __repr__(self):
 		return f"""	<tower>
 		<twr>
-			<lon>{self.lon}</lon>
 			<lat>{self.lat}</lat>
+			<lon>{self.lon}</lon>
 			<elev-m>{self.agl}</elev-m>
 		</twr>
 	</tower>
@@ -185,8 +185,8 @@ class ILS:
 		
 		if None not in (self.lon1, self.lat1, self.rwy1, self.hdg1, self.elev1, self.ident1):
 			s += f"""	<ils>
-			<lon>{self.lon1}</lon>
 			<lat>{self.lat1}</lat>
+			<lon>{self.lon1}</lon>
 			<rwy>{self.rwy1}</rwy>
 			<hdg-deg>{self.hdg1:.2f}</hdg-deg>
 			<elev-m>{self.elev1}</elev-m>
@@ -195,8 +195,8 @@ class ILS:
 """
 		if None not in (self.lon2, self.lat2, self.rwy2, self.hdg2, self.elev2, self.ident2):
 			s += """		<ils>
-			<lon>{self.lon2}</lon>
 			<lat>{self.lat2}</lat>
+			<lon>{self.lon2}</lon>
 			<rwy>{self.rwy2}</rwy>
 			<hdg-deg>{self.hdg2:.2f}</hdg-deg>
 			<elev-m>{self.elev2}</elev-m>
@@ -283,25 +283,26 @@ def parse_aptdat_files(files, nav_dat, print_runway_lengths):
 			elif line[0] == 14:
 				towers[icao] = Tower(float(line[2]), float(line[1]), float(line[3]))
 			elif line[0] == 1201: # taxi node
-				taxi_nodes[icao].append(TaxiNode(float(line[2]), float(line[1]), len(taxi_nodes[icao])))
+				taxi_nodes[icao].append(TaxiNode(float(line[2]), float(line[1]), int(line[4]) + len(parkings[icao])))
 			elif line[0] == 1202: # taxi edge
 				if len(line) == 6:
-					taxi_edges[icao].append(TaxiEdge(int(line[1]), int(line[2]), line[4] == "runway", line[5]))
+					edge = TaxiEdge(int(line[1]) + len(parkings[icao]), int(line[2]) + len(parkings[icao]), line[3] == "twoway", line[4] == "runway", line[5])
+					if edge.begin != edge.end:
+						taxi_edges[icao].append(edge)
 		
 		if not icao in towers and len(runways[icao]) > 0:
 			runway_lons = []
 			runway_lats = []
 			runway_hdgs = []
 			for runway in runways[icao]:
-				runway_lons += [runway.lon1, runway.lon2]
-				runway_lats += [runway.lat1, runway.lat2]
+				runway_lons += [runway.coord1.lon, runway.coord2.lon]
+				runway_lats += [runway.coord1.lat, runway.coord2.lat]
 				runway_hdgs.append(runway.get_heading1_deg())
 			
 			
-			tower_lon, tower_lat = geo.apply_heading_distance(statistics.median(runway_lons), 
-																	statistics.median(runway_lats),
-																	statistics.median(runway_hdgs) + 90, 50)
-			towers[icao] = Tower(tower_lon, tower_lat, 15)
+			tower_pos = (coord.Coord(statistics.median(runway_lons), statistics.median(runway_lats))
+									.apply_angle_distance_m(statistics.median(runway_hdgs) + 90, 200))
+			towers[icao] = Tower(tower_pos.lon, tower_pos.lat, 15)
 		
 		if not parkings[icao]:
 			del parkings[icao]
@@ -352,10 +353,11 @@ def write_groundnet_files(parkings, taxi_nodes, taxi_edges, output, overwrite):
 			if len(taxi_nodes[icao]) > 0 and len(taxi_edges[icao]) > 0:
 				f.write("	<TaxiNodes>\n")
 				for edge in taxi_edges[icao]:
-					taxi_nodes[icao][edge.begin].is_on_runway = edge.is_on_runway
-					taxi_nodes[icao][edge.end].is_on_runway = edge.is_on_runway
+					taxi_nodes[icao][edge.begin - len(parkings[icao])].is_on_runway = edge.is_on_runway
+					taxi_nodes[icao][edge.end - len(parkings[icao])].is_on_runway = edge.is_on_runway
 				for node in taxi_nodes[icao]:
-					f.write(repr(node))
+					if any(node in edge for edge in taxi_edges[icao]):
+						f.write(repr(node))
 				f.write("	</TaxiNodes>\n")
 				
 				f.write("	<TaxiWaySegments>\n")
