@@ -3,7 +3,12 @@
 
 import argparse
 import os, sys
+import math
+
+import scipy.interpolate
+
 from fgtools.utils.interpolator import Interpolator
+from fgtools.utils import range
 
 class Case:
 	def __init__(self, textcase):
@@ -25,7 +30,12 @@ class Case:
 		textcase.pop(0) # get rid of the Solver case line
 		textcase.pop(0) # get rid of another legend line
 		lastiterindex = textcase.index("Skin Friction Drag Break Out:") - 1
-		self.CL, self.CDo, self.CDi, self.CDtot, self.CS, self.LD, self.E, self.CFx, self.CFy, self.CFz, self.CMx, self.CMy, self.CMz, self.CDtrefftz, self.TQS = map(float, textcase.pop(lastiterindex).split()[4:]) # we don't need Mach, AoA, Beta again
+		line = textcase.pop(lastiterindex).split()[4:]
+		if len(line) == 16:
+			self.CL, self.CDo, self.CDi, self.CDtot, self.CDt, self.CDtot_t, self.CS, self.LD, self.E, self.CFx, self.CFy, self.CFz, self.CMx, self.CMy, self.CMz, self.TQS = map(float, line)
+		else:
+			self.CL, self.CDo, self.CDi, self.CDtot, self.CS, self.LD, self.E, self.CFx, self.CFy, self.CFz, self.CMx, self.CMy, self.CMz, self.CDtrefftz, self.TQS = map(float, line)
+			
 	
 	def __str__(self):
 		return "Case(" + ", ".join(str(k) + " = " + str(v) for k, v in vars(self).items()) + ")"
@@ -33,7 +43,7 @@ class Case:
 	def __repr__(self):
 		return self.__str__()
 
-def get_cases(path):
+def get_cases(path, mach):
 	path = os.path.abspath(path)
 	
 	if not path.endswith(".history"):
@@ -56,13 +66,21 @@ def get_cases(path):
 		
 		for textcase in textcases:
 			case = Case(textcase)
+			if case.RollRate or case.YawRate or case.PitchRate or case.Mach != mach:
+				continue
 			if not case.AoA in cases:
 				cases[case.AoA] = {}
 			cases[case.AoA][case.Beta] = case
 	
+	mostbetas = len(max(cases.values(), key=lambda d: len(d)))
+	for AoA in list(cases.keys()):
+		if len(cases[AoA]) < mostbetas:
+			del cases[AoA]
+			continue
+	
 	return cases
 
-def print_table(cases, coeff, indent, precision):
+def get_raw_coeffs(cases, coeff):
 	coeffs = {}
 	for AoA in cases:
 		for Beta in cases[AoA]:
@@ -73,13 +91,37 @@ def print_table(cases, coeff, indent, precision):
 			if not AoA in coeffs:
 				coeffs[AoA] = {}
 			coeffs[AoA][Beta] = getattr(cases[AoA][Beta], coeff)
+	return coeffs
+
+def get_interpolated_coeffs(cases, coeff, alphas, betas, symmetrize):
+	coeffs = get_raw_coeffs(cases, coeff)
+	ralphas = list(coeffs.keys())
+	rbetas = list(coeffs[ralphas[0]].keys())
+	values = list([list(coeffs[ralpha].values()) for ralpha in ralphas])
+	interp = scipy.interpolate.RectBivariateSpline(ralphas, rbetas, values)
+	#interp = scipy.interpolate.interp2d(rbetas, ralphas, values, fill_value=None)
+	coeffs = {}
+	for i, alpha in enumerate(alphas):
+		if not alpha in coeffs:
+			coeffs[alpha] = {}
+		for j, beta in enumerate(betas):
+			if symmetrize:
+				s = interp(alpha, beta, grid=False)
+				coeffs[alpha][beta] = math.copysign((abs(interp(alpha, beta, grid=False)) + abs(interp(alpha, -beta, grid=False))) / 2, s)
+			else:
+				coeffs[alpha][beta] = interp(alpha, beta, grid=False)
+			#coeffs[alpha][beta] = interp([beta], [alpha])
+	return coeffs
 	
+def print_table(coeffs, indent, precision, use_wing_alpha):
 	print("<table>")
-	print(indent + '<independentVar lookup="row">aero/alpha-deg</independentVar>')
-	print(indent + '<independentVar lookup="column">aero/beta-deg</independentVar>')
+	print(indent + '<independentVar lookup="row">aero/alpha-' + ("wing-" if use_wing_alpha else "") + 'deg</independentVar>')
+	if len(coeffs[list(coeffs.keys())[0]]) > 1:
+		print(indent + '<independentVar lookup="column">aero/beta-deg</independentVar>')
 	#print(indent + '<independentVar lookup="table">velocities/mach</independentVar>')
 	print(indent + "<tableData>")
-	print(indent + indent + indent + indent + (indent + indent).join(map(str, coeffs[list(coeffs.keys())[0]].keys())))
+	if len(coeffs[list(coeffs.keys())[0]]) > 1:
+		print(indent + indent + indent + indent + (indent + indent).join(map(str, coeffs[list(coeffs.keys())[0]].keys())))
 	for AoA in coeffs:
 		print(indent + indent + str(AoA), end="")
 		for Beta in coeffs[AoA]:
@@ -112,12 +154,77 @@ if __name__ == "__main__":
 	)
 	
 	argp.add_argument(
+		"--alpha-min",
+		help="Lowest alpha table lookup value",
+		type=float,
+		default=None
+	)
+	argp.add_argument(
+		"--alpha-max",
+		help="Highest alpha table lookup value",
+		type=float,
+		default=None
+	)
+	argp.add_argument(
+		"--alpha-step",
+		help="Alpha table lookup value step size",
+		type=float,
+		default=None
+	)
+	
+	argp.add_argument(
+		"--beta-min",
+		help="Lowest alpha table lookup value",
+		type=float,
+		default=None
+	)
+	argp.add_argument(
+		"--beta-max",
+		help="Highest alpha table lookup value",
+		type=float,
+		default=None
+	)
+	argp.add_argument(
+		"--beta-step",
+		help="Alpha table lookup value step size",
+		type=float,
+		default=None
+	)
+	
+	argp.add_argument(
+		"-s", "--symmetrize",
+		help="Symmetrize table around the sideslip axis",
+		action="store_true",
+	)
+	
+	argp.add_argument(
+		"-w", "--use-wing-alpha",
+		help="Use aero/alpha-wing-deg instead of aero/alpha-deg for the alpha lookup property",
+		action="store_true"
+	)
+	
+	argp.add_argument(
 		"input_file",
 		help="VSPAERO .history file",
 	)
 	
+	argp.add_argument(
+		"-m", "--mach",
+		help="Mach for which to output table - must exist in the .history file !",
+		type=float,
+		required=True
+	)
+	
 	args = argp.parse_args()
 	
-	cases = get_cases(args.input_file)
-	print_table(cases, args.coeff, args.indentation, args.precision)
+	cases = get_cases(args.input_file, args.mach)
+	if None not in (args.alpha_min, args.alpha_max, args.alpha_step, args.beta_min, args.beta_max, args.beta_step):
+		alphas = list(range(args.alpha_min, args.alpha_max, args.alpha_step))
+		alphas.append(args.alpha_max)
+		betas = list(range(args.beta_min, args.beta_max, args.beta_step))
+		betas.append(args.beta_max)
+		coeffs = get_interpolated_coeffs(cases, args.coeff, alphas, betas, args.symmetrize)
+	else:
+		coeffs = get_raw_coeffs(cases, args.coeff)
+	print_table(coeffs, args.indentation, args.precision, args.use_wing_alpha)
 

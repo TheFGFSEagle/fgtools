@@ -33,9 +33,13 @@ class Interpolator:
 			raise ValueError(f"Interpolator.interpolate: cannot interpolate on a table with less than two data points")
 		
 		# only sort if not already sorted to increase performance for large tables
-		if not self._sorted and sort:
-			self._indexes.sort()
-			self._values.sort()
+		if sort and not self._sorted:
+			items = sorted(list(zip(self._indexes, self._values)), key=lambda t: t[0])
+			self._indexes = []
+			self._values = []
+			for item in items:
+				self._indexes.append(item[0])
+				self._values.append(item[1])
 			self._sorted = True
 		
 		if index in self._indexes:

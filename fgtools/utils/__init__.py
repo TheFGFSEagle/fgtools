@@ -125,3 +125,16 @@ def wrap_period(n, min, max):
 	
 	return n
 
+def range(stop, start=None, step=1):
+	if start:
+		stop, start = start, stop
+	else:
+		start = 0
+	yield round(start, 14)
+	i = 0
+	r = start
+	while r < stop:
+		i += 1
+		r = start + i * step
+		yield round(r, 14)
+	

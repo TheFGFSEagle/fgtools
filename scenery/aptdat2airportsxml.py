@@ -105,10 +105,10 @@ class Runway:
 		return unit_convert.m2ft(self.get_length_m())
 	
 	def get_heading1_deg(self):
-		return self.coord2.angle(self.coord1)
+		return self.coord1.angle(self.coord2)
 	
 	def get_heading2_deg(self):
-		return self.coord1.angle(self.coord2)
+		return self.coord2.angle(self.coord1)
 	
 	def __repr__(self):
 		return f"""	<runway>
@@ -457,7 +457,6 @@ def write_ils_files(ils_d, output, elevpipe, overwrite):
 		
 		i += 1
 	print()
-	print(i)
 
 if __name__ == "__main__":
 	argp = argparse.ArgumentParser(description="Convert apt.dat files to groundnet.xml files")
