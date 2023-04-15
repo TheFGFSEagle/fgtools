@@ -9,9 +9,9 @@ Download / `git clone` this repo and put it in a place of your choice, say `/hom
 ```sh
 /home/user$ git clone https://github.com/TheFGFSEagle/fgtools
 ```
-Before you run the scripts you have to make sure that the folder containing this repository on your local disk (here `/home/user`) is inside your `PYTHONPATH` environment variable, or you must run the scripts from inside the `fgtools` folder. To add the folder to your `PYTHONPATH`, use this command:
+Before you run the scripts you have to make sure that this repository on your local disk (here `/home/user/fgtools`) is inside your `PYTHONPATH` environment variable, or you must run the scripts from inside `/home/user/fgtools`. To add the folder to your `PYTHONPATH`, use this command:
 ```sh
-export PYTHONPATH="${PYTHONPATH}:/home/user"
+export PYTHONPATH="${PYTHONPATH}:/home/user/fgtools"
 ```
 Note: this is lost when you close the terminal / console, so you have to run this command every time you open a new console and run the scripts from it. To make the change persistent, add the command to the end of the `.profile` file in your home folder.
 
