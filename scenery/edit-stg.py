@@ -8,7 +8,7 @@ import subprocess
 import time
 
 from fgtools.utils import make_fgelev_pipe
-from fgtools import utils.files
+from fgtools.utils import files
 
 class SkipReason:
 	NotFound = 0
@@ -200,7 +200,7 @@ def main():
 	)
 	
 	args = argp.parse_args()
-	infiles = utils.files.find_input_files(args.input)
+	infiles = files.find_input_files(args.input)
 	outfiles = args.output
 	fgdata = args.fgdata
 	fgscenery = args.fgscenery

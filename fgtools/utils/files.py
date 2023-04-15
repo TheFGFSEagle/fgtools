@@ -15,10 +15,11 @@ def find_input_files(paths, prefix="", suffix=""):
 	
 	files = []
 	for path in paths:
-		if os.path.isfile(path) and os.path.split(path)[-1].startswith(prefix) and path.endswith(suffix):
-			files.append(path)
+		if os.path.isfile(path):
+			if os.path.split(path)[-1].startswith(prefix) and path.endswith(suffix):
+				files.append(path)
 		elif os.path.isdir(path):
-			files += find_input_files([os.path.join(path, s) for s in os.listdir(path)])
+			files += find_input_files([os.path.join(path, s) for s in os.listdir(path)], prefix, suffix)
 		else:
 			print(f"Input file / directory {path} does not exist - skipping")
 	

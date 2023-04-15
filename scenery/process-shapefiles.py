@@ -30,7 +30,7 @@ It will merge / slice the files accordingly with ogr2ogr.
 """
 #As the final step, the resulting shapefiles will be decoded into files that tg-constrcut can read using ogr-decode.
 #"""
-catnames = ["landmass", "buildings_a", "landuse_a", "natural", "natural_a", "places", "places_a", "pofw", "pofw_a", "pois", "pois_a", "railways", "roads", "traffic", "traffic_a", "transport", "transport_a", "water_a", "waterways"]
+catnames = ["landmass", "buildings", "landuse", "natural", "places", "pofw", "points", "pois", "railways", "roads", "traffic", "transport", "water", "waterways"]
 tmpdir = tempfile.TemporaryDirectory()
 
 def categorize(shapefiles):
@@ -97,7 +97,8 @@ if __name__ == "__main__":
 	
 	argp.add_argument(
 		"-d", "--description",
-		help="display an extended description of what this script does and exit"
+		help="display an extended description of what this script does and exit",
+		action="store_true"
 	)
 	
 	argp.add_argument(
