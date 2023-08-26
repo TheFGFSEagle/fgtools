@@ -194,7 +194,7 @@ class ILS:
 		</ils>
 """
 		if None not in (self.lon2, self.lat2, self.rwy2, self.hdg2, self.elev2, self.ident2):
-			s += """		<ils>
+			s += f"""		<ils>
 			<lat>{self.lat2}</lat>
 			<lon>{self.lon2}</lon>
 			<rwy>{self.rwy2}</rwy>
