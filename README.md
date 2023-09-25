@@ -33,7 +33,7 @@ python -m pip install scipy
 run the python file
 
 ```console
-python *pythonfilename.py*
+python pythonfilename.py
 ```
 ## Credits
 * dsftxt2stg-lookup.py taken and modified from https://github.com/mherweg/d-laser-fgtools/library.txt
