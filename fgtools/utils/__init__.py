@@ -5,92 +5,13 @@ import math
 import os
 import sys
 import subprocess
+import time
+import requests
+import shutil
 
-def get_fg_tile_span(lat):
-	if lat >= 89:
-		return 12
-	elif lat >= 86:
-		return 4
-	elif lat >= 83:
-		return 2
-	elif lat >= 76:
-		return 1
-	elif lat >= 62:
-		return 0.5
-	elif lat >= 22:
-		return 0.25
-	elif lat >= -22:
-		return 0.125
-	elif lat >= -62:
-		return 0.25
-	elif lat >= -76:
-		return 0.5
-	elif lat >= -83:
-		return 1
-	elif lat >= -86:
-		return 2
-	elif lat >= -89:
-		return 4
-	else:
-		return 12
+import datetime
+from dateutil.parser import parse as parsedate
 
-def get_fg_tile_index(dlon, dlat):
-	tile_width = get_fg_tile_span(dlat)
-	lon = math.floor(dlon)
-	lat = math.floor(dlat)
-	if tile_width <= 1:
-		x = math.floor((dlon - lon) / tile_width)
-	else:
-		lon = int(math.floor(lon / tile_width) * tile_width)
-		x = 0
-	
-	if lat == 90:
-		lat = 89
-		y = 7
-	else:
-		y = math.floor((dlat - math.floor(dlat)) * 8)
-	
-	return ((lon + 180) << 14) + ((lat + 90) << 6) + (y << 3) + x
-
-def get_fg_tile_coords(index):
-	lon = index >> 14;
-	index -= lon << 14;
-	lon -= 180;
-
-	lat = index >> 6;
-	index -= lat << 6;
-	lat -= 90;
-	
-	return lon, lat
-
-def get_fg_tile_path(lon, lat):
-	top_lon = int(lon / 10);
-	main_lon = int(lon);
-	if (lon < 0) and (top_lon * 10 != lon):
-		top_lon -= 1;
-	top_lon *= 10
-	if top_lon >= 0:
-		hem = "e"
-	else:
-		hem = "w"
-		top_lon *= -1;
-	if main_lon < 0:
-		main_lon *= -1
-	
-	top_lat = int(lat / 10)
-	main_lat = int(lat)
-	if (lat < 0) and (top_lat * 10 != lat):
-		top_lat -= 1
-	top_lat *= 10
-	if top_lat >= 0:
-		pole = "n"
-	else:
-		pole = "s"
-		top_lat *= -1
-	if main_lat < 0:
-		main_lat *= -1
-	
-	return f"{hem}{int(top_lon):03d}{pole}{int(top_lat):02d}/{hem}{int(main_lon):03d}{pole}{int(main_lat):02d}/{get_fg_tile_index(lon, lat)}"
 
 def make_fgelev_pipe(fgelev, fgscenery, fgdata):
 	print("Creating pipe to fgelev … ", end="")
@@ -110,10 +31,9 @@ def isiterable(o, striterable=False):
 	if isinstance(o, str):
 		return striterable
 	else:
-		try:
-			iter(o)
+		if hasattr(o, "__iter__"):
 			return True
-		except TypeError:
+		else:
 			return False
 
 def wrap_period(n, min, max):
@@ -137,4 +57,83 @@ def range(stop, start=None, step=1):
 		i += 1
 		r = start + i * step
 		yield round(r, 14)
+
+def format_size(size, decimal_places=1):
+	for unit in ["", "K", "M", "G", "T", "P"]:
+		if size < 1000 or unit == 'P':
+			break
+		size /= 1000
+	return f"{size:.{decimal_places}f} {unit}B"
+
+def download(url, path, progress=True, prolog="Downloading '{path}' - ", blocksize=1000, force=False, update=True):
+	with requests.get(url, stream=True) as remote:
+		if remote.status_code >= 400:
+			print(f"Error {remote.status_code}: {url}")
+			return False
+		
+		content_length = int(remote.headers["Content-Length"])
+		
+		if os.path.exists(path):
+			url_time = parsedate(remote.headers['last-modified']).replace(tzinfo=None)
+			file_time = datetime.datetime.fromtimestamp(os.path.getmtime(path)).replace(tzinfo=None)
+			
+			if (url_time <= file_time or not update) and content_length == os.stat(path).st_size and not force:
+				return True
+
+		with open(path, "wb") as local:
+			start_time = time.time()
+			last_time = time.time()
+			times = [0] * 1000
+			time_since_last_print = 0
+			i = 0
+			for chunk in remote.iter_content(chunk_size=blocksize):
+				current_time = time.time()
+				times.append(current_time - last_time)
+				del times[0]
+				time_since_last_print += current_time - last_time
+				last_time = current_time
+				if (time_since_last_print > 0.5):
+					rate = blocksize * 1000 / sum(times)
+					padded_print(prolog.format(path=path) +
+						f"{format_size(i)} of {format_size(content_length)} ({i / content_length * 100:5.1f} %) at " \
+						f"{format_size(rate)}/s", end="\r")
+					time_since_last_print = 0
+				local.write(chunk)
+				i += len(chunk)
+			padded_print(prolog.format(path=path) +
+				f"{format_size(i)} of {format_size(content_length)} ({i / content_length * 100:5.1f} %) at " \
+				f"{format_size(local.tell() / (time.time() - start_time))}/s")
+			local.close()
+	return True
+
+def padded_print(s, pad_str=" ", end=None):
+	print(s + pad_str * (shutil.get_terminal_size()[0] - len(s)), end=end)
+
+def read_timestamp(path):
+	timestamp_path = path + ".timestamp"
+	if not os.path.exists(timestamp_path):
+		return -1
 	
+	with open(timestamp_path, "r") as timestamp_file:
+		try:
+			return float(timestamp_file.read().strip())
+		except ValueError:
+			return -1
+
+def write_timestamp(path):
+	os.makedirs(os.path.dirname(path), exist_ok=True)
+	timestamp_path = path + ".timestamp"
+	with open(timestamp_path, "w") as timestamp_file:
+		timestamp_file.write(str(time.time()))
+
+def run_command(cmd, error_log_path=None):
+	error_log_path = (error_log_path or cmd.replace("/", "_")) + ".log"
+	p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+	if p.returncode != 0:
+		os.makedirs(os.path.dirname(error_log_path) or ".", exist_ok=True)
+		with open(error_log_path, "wb") as log_file:
+			log_file.write(cmd.encode("utf-8") + b"\n\n")
+			log_file.write(p.stdout)
+		print(f"\nCommand '{cmd}' exited with return code {p.returncode} - see {error_log_path} for details.")
+	return p.returncode
+

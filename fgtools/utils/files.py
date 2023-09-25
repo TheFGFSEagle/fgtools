@@ -3,8 +3,12 @@
 
 import os
 import logging
+import requests
+import datetime
+import dateutil.parser
 
-from fgtools.utils import isiterable
+from fgtools.utils import isiterable, download
+from fgtools.utils.constants import CACHEDIR
 
 def find_input_files(paths, prefix="", suffix=""):
 	if not isiterable(paths):
@@ -67,3 +71,21 @@ def check_exists(path, exit=True, type="file", create=True):
 		else:
 			func(f"Path {path} does not exist - {action} !")
 			return 0
+
+def get_cached_file(url, path=None, progress=True, prolog="Downloading '{path}' - ", blocksize=1000):
+	path = path or os.path.join(CACHEDIR, url.replace("/", "_"))
+	download(url, path, progress=progress, prolog=prolog, blocksize=blocksize)
+	return path
+
+def get_newest_mtime(paths, prefix="", suffix=""):
+	if not isiterable(paths):
+		if isinstance(paths, str):
+			paths = [paths]
+		else:
+			raise TypeError("paths is not iterable / not a string")
+	paths = list(filter(os.path.exists, paths))
+	files = find_input_files(paths, prefix, suffix)
+	if not files:
+		return 99999999999999999999999999999999999999999999999999999999999
+	return max(map(os.path.getmtime, files))
+

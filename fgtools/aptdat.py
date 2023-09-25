@@ -4,10 +4,13 @@
 import logging
 import os
 
+from plum import dispatch
+
 from fgtools.utils import files
 from fgtools import geo
 from fgtools.utils import unit_convert
 from fgtools import utils
+from fgtools.geo.rectangle import Rectangle
 
 class Code:
 	def __init__(self, name, code):
@@ -44,9 +47,15 @@ class Code:
 
 class CodeEnum:
 	def __init__(self, names, codes):
+		self._codemap = {}
 		for name, code in zip(names, codes):
-			setattr(self, name, Code(name, code))
-		
+			codeobject = Code(name, code)
+			setattr(self, name, codeobject)
+			self._codemap[code] = codeobject
+	
+	def __getitem__(self, key):
+		return self._codemap[key]
+
 SurfaceCode = CodeEnum(
 	("Asphalt", "Concrete", "Grass", "Dirt", "Gravel", "DryLakebed", "Water", "SnowIce", "Transparent"),
 	list(range(1, 6)) + list(range(12, 16))
@@ -120,9 +129,22 @@ AirportType = CodeEnum(
 	(1, 16, 17)
 )
 
-class Helipad:
+class Object:
+	def __init__(self):
+		pass
+	
+	def read(self, line):
+		pass
+	
+	def write(self, f):
+		if None in vars(self).values():
+			raise RuntimeError("object fields " + list(filter(lambda item: item[1] == None, vars(self).items())) + " are uninitialized")
+
+class Helipad(Object):
+	@dispatch
 	def __init__(self, id, lon, lat, heading, length, width, surface, shoulder=RunwayShoulderCode.NoShoulder,
 				smoothness=0.25, edge_lights=False):
+		Object.__init__(self)
 		self.id = id
 		self.lon = lon
 		self.lat = lat
@@ -134,12 +156,26 @@ class Helipad:
 		self.smoothness = smoothness
 		self.edge_lights = edge_lights
 	
+	@dispatch
+	def __init__(self):
+		Object.__init__(self)
+		self.id = self.lon = self.lat = self.heading = self.length = self.width = self.surface = self.shoulder = self.smoothness = self.edge_lights = None
+	
+	def read(self, line):
+		Object.read(self, line)
+		self.id, self.lat, self.lon, self.heading, self.length, self.width, self.surface, self.shoulder, self.smoothness, self.edge_lights = \
+						line[1], float(line[2]), float(line[3]), float(line[4]), float(line[5]), float(line[6]), SurfaceCode[int(line[7])], \
+						RunwayShoulderCode[int(line[8])], float(line[9]), bool(int(line[10]))
+	
 	def write(self, f):
+		Object.write(self. f)
 		f.write((f"102 {self.id} {float(self.lat)} {float(self.lon)} {float(self.heading)} {float(self.length):.2f}" +
 				f" {float(self.width):.2f} {int(self.surface)} {int(self.shoulder)} {float(self.smoothness):.2f} {int(self.edge_lights)}\n"))
 
 class Runway:
+	@dispatch
 	def __init__(self, width, id1, lon1, lat1, id2, lon2, lat2):
+		Object.__init__(self)
 		self.width = width
 		self.id1 = id1
 		self.lon1 = lon1
@@ -147,6 +183,11 @@ class Runway:
 		self.id2 = id2
 		self.lon2 = lon2
 		self.lat2 = lat2
+	
+	@dispatch
+	def __init__(self):
+		Object.__init__(self)
+		self.id = self.lon = self.lat = self.heading = self.length = self.width = self.surface = self.shoulder = self.smoothness = self.edge_lights = None
 	
 	def get_heading1(self):
 		return geo.get_bearing_deg(self.lon1, self.lat1, self.lon2, self.lat2)
@@ -159,18 +200,36 @@ class Runway:
 	
 	def get_length_ft(self):
 		return unit_convert.m2ft(self.get_length_m())
+	
+	def read(self, line):
+		Object.read(self, line)
+	
+	def write(self, f):
+		Object.write(self. f)
 
 class WaterRunway(Runway):
+	@dispatch
 	def __init__(self, width, id1, lon1, lat1, id2, lon2, lat2, perimeter_buoys=False):
 		Runway.__init__(self, width, id1, lon1, lat1, id2, lon2, lat2)
 		
 		self.perimeter_buoys = perimeter_buoys
 	
+	@dispatch
+	def __init__(self):
+		Runway.__init__(self, None, None, None, None, None, None, None)
+	
+	def read(self, line):
+		Runway.read(self, line)
+		self.width, self.perimeter_buoys, self.id1, self.lat1, self.lon1, self.id2, self.lat2, self.lon2 = \
+						float(line[1]), bool(int(line[2])), line[3], float(line[4]), float(line[5]), line[6], float(line[7]), float(line[8])
+	
 	def write(self, f):
+		Runway.write(self, f)
 		f.write((f"101 {float(self.width):.2f} {int(self.perimeter_buoys)} {self.id1} {float(self.lat1):.8f}" + 
 				f" {float(self.lon1):.8f} {self.id2} {float(self.lat2):.8f} {float(self.lon2):.8f}\n"))
 
 class LandRunway(Runway):
+	@dispatch
 	def __init__(self, width, surface, id1, lon1, lat1, id2, lon2, lat2, 
 						smoothness=0.25, shoulder=RunwayShoulderCode.NoShoulder, center_lights=False,
 						edge_lights=False, distance_signs=False,
@@ -201,16 +260,61 @@ class LandRunway(Runway):
 		self.tdz_lights2 = tdz_lights2
 		self.reil_type2 = reil_type2
 	
+	@dispatch
+	def __init__(self):
+		Runway.__init__(self, None, None, None, None, None, None, None,)
+		self.surface = self.shoulder = self.smoothness = self.center_lights = self.edge_lights = self.distance_signs = \
+			self.displ_thresh1 = self.blastpad1 = self.markings1 = self.appr_lights1 = self.tdz_lights1 = self.reil_type1 = \
+			self.displ_thresh2 = self.blastpad2 = self.markings2 = self.appr_lights2 = self.tdz_lights2 = self.reil_type2 = None
+	
+	def read(self, line):
+		Runway.read(self, line)
+		self.width, self.surface, self.shoulder, self.smoothness, self.center_lights, self.edge_lights, self.distance_signs, \
+			self.id1, self.lat1, self.lon1, self.displ_thresh1, self.blastpad1, \
+			self.markings1, self.appr_lights1, self.tdz_lights1, self.reil_type1, \
+			self.id2, self.lat2, self.lon2, self.displ_thresh2, self.blastpad2, \
+			self.markings2, self.appr_lights2, self.tdz_lights2, self.reil_type2 = \
+						float(line[1]), SurfaceCode[int(line[2])], RunwayShoulderCode[int(line[3])], float(line[4]), \
+						bool(int(line[5])), bool(int(line[6])), bool(int(line[7])), \
+						line[8], float(line[9]), float(line[10]), float(line[11]), float(line[12]), \
+						RunwayMarkingCode[int(line[13])], ApproachLightsCode[int(line[14])], bool(int(line[15])), REILCode[int(line[16])], \
+						line[17], float(line[18]), float(line[19]), float(line[20]), float(line[21]), \
+						RunwayMarkingCode[int(line[22])], ApproachLightsCode[int(line[23])], bool(int(line[24])), REILCode[int(line[25])]
+	
 	def write(self, f):
-		f.write((f"100 {float(self.width):.2f} {int(self.surface)} {int(self.shoulder)} {self.smoothness} {int(self.center_lights)}" +
+		Runway.write(self, f)
+		f.write((f"100 {float(self.width):.2f} {int(self.surface)} {int(self.shoulder)} {float(self.smoothness)} {int(self.center_lights)}" +
 				f" {int(self.edge_lights)} {int(self.distance_signs)}" + 
 				f" {self.id1} {float(self.lat1):.8f} {float(self.lon1):.8f} {float(self.displ_thresh1):.2f} {float(self.blastpad1):.2f} {int(self.markings1)}" + 
-				f" {int(self.appr_lights2)} {int(self.tdz_lights2)} {int(self.reil_type2)}" + 
+				f" {int(self.appr_lights1)} {int(self.tdz_lights1)} {int(self.reil_type1)}" + 
 				f" {self.id2} {float(self.lat2):.8f} {float(self.lon2):.8f} {float(self.displ_thresh2):.2f} {float(self.blastpad2):.2f} {int(self.markings2)}" + 
 				f" {int(self.appr_lights2)} {int(self.tdz_lights2)} {int(self.reil_type2)}\n"))
 
+class Metadata(Object):
+	@dispatch
+	def __init__(self, key, value):
+		Object.__init__(self)
+		
+		self.key = key
+		self.value = value
+	
+	@dispatch
+	def __init__(self):
+		Object.__init__(self)
+		self.key = self.value = None
+	
+	def read(self, line):
+		Object.read(self, line)
+		self.key, self.value = line[1], " ".join(line[2:])
+	
+	def write(self, f):
+		Object.write(self, f)
+		f.write(f"1302 {key} {value}\n")
+
 class Airport:
-	def __init__(self, elev, icao, name, lon, lat, type=AirportType.Land):
+	@dispatch
+	def __init__(self, elev, icao, name, bbox, lon, lat, type=AirportType.Land):
+		self.metadata = {}
 		self.runways = {}
 		self.helipads = {}
 		self.parkings = []
@@ -223,8 +327,25 @@ class Airport:
 		self.icao = icao
 		self.name = name
 		self.type = type
+		self.bbox = bbox
 		self.lon = lon
 		self.lat = lat
+	
+	@dispatch
+	def __init__(self):
+		self.metadata = {}
+		self.runways = {}
+		self.helipads = {}
+		self.parkings = []
+		self.aprons = []
+		self.tower = None
+		self.windsocks = []
+		self.beacons = []
+		
+		self.elev = self.icao = self.type = self.bbox = self.lon = self.lat = None
+	
+	def __repr__(self):
+		return f"Airport(elev={self.elev}, icao={self.icao}, type={self.type}, bbox={self.bbox})"
 	
 	def add_runway(self, runway):
 		self.runways[runway.id1] = runway
@@ -232,16 +353,77 @@ class Airport:
 	def add_helipad(self, helipad):
 		self.helipads[helipad.id] = helipad
 	
+	def read(self, f):
+		line = ""
+		while line := f.readline():
+			line = line.strip()
+			if line:
+				break
+		else:
+			return
+		line = line.split()
+		self.type, self.elev, _, _, self.icao = AirportType[int(line[0])], float(line[1]), line[2], line[3], line[4]
+		if len(line) > 5:
+			self.name = " ".join(line[5])
+		else:
+			self.name = ""
+		
+		rowcode = -1
+		line = ""
+		last_line_start = 0
+		while line := f.readline():
+			if line.strip() == "":
+				continue
+			line = line.split()
+			
+			rowcode = int(line[0])
+			if rowcode in (1, 16, 17):
+				f.seek(last_line_start)
+				break
+			
+			if rowcode == 100:
+				obj = LandRunway()
+				obj.read(line)
+				self.add_runway(obj)
+			elif rowcode == 101:
+				obj = WaterRunway()
+				obj.read(line)
+				self.add_runway(obj)
+			elif rowcode == 102:
+				obj = Helipad()
+				obj.read(line)
+				self.add_helipad(obj)
+			elif rowcode == 1302:
+				obj = Metadata()
+				obj.read(line)
+				self.metadata[obj.key] = obj
+			
+			last_line_start = f.tell()
+		
+		runway_lons = list(map(lambda id: self.runways[id].lon1, self.runways)) + list(map(lambda id: self.runways[id].lon2, self.runways))
+		runway_lats = list(map(lambda id: self.runways[id].lat1, self.runways)) + list(map(lambda id: self.runways[id].lat2, self.runways))
+		self.bbox = Rectangle((float(min(runway_lons)), float(min(runway_lats))), (float(max(runway_lons)), float(max(runway_lats))))
+		
+		if "datum_lon" in self.metadata and "datum_lat" in self.metadata:
+			self.lon = float(self.metadata["datum_lon"].value)
+			self.lat = float(self.metadata["datum_lat"])
+		else:
+			self.lon = self.bbox.midpoint().lon
+			self.lat = self.bbox.midpoint().lat
+		
 	def write(self, f):
-		f.write(f"{repr(self.type)} {int(self.elev)} 0 0 {self.icao} {self.name}\n")
-		f.write(f"1302 datum_lat {self.lat}\n")
-		f.write(f"1302 datum_lon {self.lon}\n")
-		f.write(f"1302 icao_code {self.icao}\n")
+		if None in (self.elev, self.icao, self.name, self.type, self.lon, self.lat):
+			raise RuntimeError("object fields " + list(filter(lambda item: item[1] == None, vars(self).items())) + " are uninitialized")
+		f.write(f"{repr(self.type)} {float(self.elev):.2f} 0 0 {self.icao} {self.name}\n")
+		
+		for metadata in self.metadata:
+			metadata.write(f)
+		
 		for id in self.runways:
 			self.runways[id].write(f)
 		for id in self.helipads:
 			self.helipads[id].write(f)
-		"""for parking in self.parkings:
+		for parking in self.parkings:
 			parking.write(f)
 		for apron in self.aprons:
 			apron.write(f)
@@ -250,7 +432,7 @@ class Airport:
 		for windsock in self.windsocks:
 			windsock.write(f)
 		for beacon in self.beacons:
-			beacon.write(f)"""
+			beacon.write(f)
 
 class ReaderWriterAptDat:
 	def __init__(self, file_header="Generated by fgtools.aptdat.ReaderWriterAptDat"):
@@ -276,9 +458,14 @@ class ReaderWriterAptDat:
 		if i > -1:
 			return self._airports[i]
 	
-	def get_airports(self, icaos):
+	def get_airports(self, icaos=None):
+		if icaos == None:
+			return self._airports
+		
+		l = []
 		for icao in icaos:
-			yield self.get_airport(icao)
+			l.append(self.get_airport(icao))
+		return l
 	
 	def set_airport(self, airport):
 		i = self._get_airport_index(airport.icao)
@@ -295,7 +482,9 @@ class ReaderWriterAptDat:
 	def remove_airport(self, icao):
 		return self._airports.pop(self._get_airport_index(icao))
 	
-	def remove_airports(self, icaos):
+	def remove_airports(self, icaos=None):
+		if icaos == None:
+			self._airports = []
 		for icao in icaos:
 			yield self._airports.pop(self._get_airport_index(icao))
 	
@@ -308,6 +497,18 @@ class ReaderWriterAptDat:
 		else:
 			logging.fatal(f"Path {path} does not exist - exiting !")
 		
+		with open(path, "r") as f:
+			f.seek(0, 2)
+			file_size = f.tell()
+			f.seek(0)
+			
+			f.readline()
+			f.readline()
+			
+			while f.tell() != file_size:
+				airport = Airport()
+				airport.read(f)
+				self.add_airport(airport)
 	
 	def read_multiple(self, paths):
 		for path in paths:
