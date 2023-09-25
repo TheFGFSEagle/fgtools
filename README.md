@@ -24,13 +24,14 @@ git clone https://github.com/TheFGFSEagle/fgtools
 ```
 
 Copy the python code you want to use and paste it in the repository folder (outside of the subfolders).
-ensure scipy is installed
+
+ensure scipy is installed:
 
 ```console
 python -m pip install scipy
 ```
 
-run the python file
+run the python file:
 
 ```console
 python pythonfilename.py
