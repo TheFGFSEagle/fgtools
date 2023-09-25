@@ -28,7 +28,10 @@ class Case:
 		self.PitchRate = float(textcase.pop(0)[1].split()[1])
 		self.YawRate = float(textcase.pop(0)[1].split()[1])
 		textcase.pop(0) # get rid of the Solver case line
-		textcase.pop(0) # get rid of another legend line
+		legend = textcase.pop(0)
+		
+		coeffmap = {i: k for i, k in enumerate(legend[1].split()[4:])}
+		self.coeffs = {k: None for k in coeffmap.values()}
 		
 		line = (-1, "")
 		while True:
@@ -38,12 +41,17 @@ class Case:
 			line = tline
 		
 		coeffs = line[1].split()[4:]
-		if len(coeffs) == 16:
-			self.CL, self.CDo, self.CDi, self.CDtot, self.CDt, self.CDtot_t, self.CS, self.LD, self.E, self.CFx, self.CFy, self.CFz, self.CMx, self.CMy, self.CMz, self.TQS = map(float, coeffs)
-		elif len(coeffs) == 15:
-			self.CL, self.CDo, self.CDi, self.CDtot, self.CS, self.LD, self.E, self.CFx, self.CFy, self.CFz, self.CMx, self.CMy, self.CMz, self.CDtrefftz, self.TQS = map(float, coeffs)
+		if len(coeffs) > 0:
+			for i, coeff in enumerate(coeffs):
+				if "nan" in coeff:
+					coeff = math.nan
+				elif "inf" in coeff:
+					coeff = math.inf
+				else:
+					coeff = float(coeff)
+				self.coeffs[coeffmap[i]] = coeff
 		else:
-			raise ValueError(f"expected coefficients line containing 15 - 16 coefficients, but got {len(coeffs)} at line {line[0]}")
+			raise ValueError(f"found no coefficients at line {line[0]}")
 	
 	def __str__(self):
 		return "Case(" + ", ".join(str(k) + " = " + str(v) for k, v in vars(self).items()) + ")"
@@ -75,7 +83,6 @@ def get_cases(path, mach):
 		
 		for textcase in textcases:
 			case = Case(textcase)
-			print(case.Mach)
 			if case.RollRate or case.YawRate or case.PitchRate or case.Mach != mach:
 				continue
 			if not case.AoA in cases:
@@ -94,13 +101,13 @@ def get_raw_coeffs(cases, coeff):
 	coeffs = {}
 	for AoA in cases:
 		for Beta in cases[AoA]:
-			if not hasattr(cases[AoA][Beta], coeff):
+			if not coeff in cases[AoA][Beta].coeffs:
 				print("The coefficient", coeff, "does not exist in the specified .history file - exiting")
 				sys.exit(1)
 			
 			if not AoA in coeffs:
 				coeffs[AoA] = {}
-			coeffs[AoA][Beta] = getattr(cases[AoA][Beta], coeff)
+			coeffs[AoA][Beta] = cases[AoA][Beta].coeffs[coeff]
 	return coeffs
 
 def get_interpolated_coeffs(cases, coeff, alphas, betas, symmetrize):
