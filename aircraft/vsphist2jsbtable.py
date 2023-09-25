@@ -232,9 +232,20 @@ if __name__ == "__main__":
 		required=True
 	)
 	
+	argp.add_argument(
+		"-C", "--list-coefficients",
+		help="List coefficients defined in the input .history file",
+		action="store_true",
+	)
+	
 	args = argp.parse_args()
 	
 	cases = get_cases(args.input_file, args.mach)
+	
+	if args.list_coefficients:
+		print("\t".join(list(list(cases.values())[0].values())[0].coeffs.keys()))
+		sys.exit(0)
+	
 	if None not in (args.alpha_min, args.alpha_max, args.alpha_step, args.beta_min, args.beta_max, args.beta_step):
 		alphas = list(range(args.alpha_min, args.alpha_max, args.alpha_step))
 		alphas.append(args.alpha_max)
