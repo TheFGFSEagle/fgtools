@@ -13,29 +13,37 @@ from fgtools.utils import range
 class Case:
 	def __init__(self, textcase):
 		textcase.pop(0) # get rid of the Name Value Unit legend line
-		self.Sref = float(textcase.pop(0).split()[1])
-		self.Bref = float(textcase.pop(0).split()[1])
-		self.Cref = float(textcase.pop(0).split()[1])
-		self.Xcg = float(textcase.pop(0).split()[1])
-		self.Ycg = float(textcase.pop(0).split()[1])
-		self.Zcg = float(textcase.pop(0).split()[1])
-		self.Mach = float(textcase.pop(0).split()[1])
-		self.AoA = float(textcase.pop(0).split()[1])
-		self.Beta = float(textcase.pop(0).split()[1])
-		self.Rho = float(textcase.pop(0).split()[1])
-		self.Vinf = float(textcase.pop(0).split()[1])
-		self.RollRate = float(textcase.pop(0).split()[1])
-		self.PitchRate = float(textcase.pop(0).split()[1])
-		self.YawRate = float(textcase.pop(0).split()[1])
+		self.Sref = float(textcase.pop(0)[1].split()[1])
+		self.Bref = float(textcase.pop(0)[1].split()[1])
+		self.Cref = float(textcase.pop(0)[1].split()[1])
+		self.Xcg = float(textcase.pop(0)[1].split()[1])
+		self.Ycg = float(textcase.pop(0)[1].split()[1])
+		self.Zcg = float(textcase.pop(0)[1].split()[1])
+		self.Mach = float(textcase.pop(0)[1].split()[1])
+		self.AoA = float(textcase.pop(0)[1].split()[1])
+		self.Beta = float(textcase.pop(0)[1].split()[1])
+		self.Rho = float(textcase.pop(0)[1].split()[1])
+		self.Vinf = float(textcase.pop(0)[1].split()[1])
+		self.RollRate = float(textcase.pop(0)[1].split()[1])
+		self.PitchRate = float(textcase.pop(0)[1].split()[1])
+		self.YawRate = float(textcase.pop(0)[1].split()[1])
 		textcase.pop(0) # get rid of the Solver case line
 		textcase.pop(0) # get rid of another legend line
-		lastiterindex = textcase.index("Skin Friction Drag Break Out:") - 1
-		line = textcase.pop(lastiterindex).split()[4:]
-		if len(line) == 16:
-			self.CL, self.CDo, self.CDi, self.CDtot, self.CDt, self.CDtot_t, self.CS, self.LD, self.E, self.CFx, self.CFy, self.CFz, self.CMx, self.CMy, self.CMz, self.TQS = map(float, line)
+		
+		line = (-1, "")
+		while True:
+			tline = textcase.pop(0)
+			if "Skin Friction Drag Break Out:" in tline:
+				break
+			line = tline
+		
+		coeffs = line[1].split()[4:]
+		if len(coeffs) == 16:
+			self.CL, self.CDo, self.CDi, self.CDtot, self.CDt, self.CDtot_t, self.CS, self.LD, self.E, self.CFx, self.CFy, self.CFz, self.CMx, self.CMy, self.CMz, self.TQS = map(float, coeffs)
+		elif len(coeffs) == 15:
+			self.CL, self.CDo, self.CDi, self.CDtot, self.CS, self.LD, self.E, self.CFx, self.CFy, self.CFz, self.CMx, self.CMy, self.CMz, self.CDtrefftz, self.TQS = map(float, coeffs)
 		else:
-			self.CL, self.CDo, self.CDi, self.CDtot, self.CS, self.LD, self.E, self.CFx, self.CFy, self.CFz, self.CMx, self.CMy, self.CMz, self.CDtrefftz, self.TQS = map(float, line)
-			
+			raise ValueError(f"expected coefficients line containing 15 - 16 coefficients, but got {len(coeffs)} at line {line[0]}")
 	
 	def __str__(self):
 		return "Case(" + ", ".join(str(k) + " = " + str(v) for k, v in vars(self).items()) + ")"
@@ -50,22 +58,24 @@ def get_cases(path, mach):
 		print("The specified file", path, "is not a VSPAERO .history file - exiting")
 		sys.exit(1)
 	
+	textcases = []
+	textcase = []
+	cases = {}
+	
 	with open(path, "r") as histf:
-		textcases = []
 		lines = histf.readlines()[1:]
-		textcase = []
-		cases = {}
-		
-		for line in lines:
+		for lineno, line in enumerate(lines):
 			if line.startswith("****"):
-				textcases.append(list(filter(None, textcase)))
+				textcases.append(textcase)
 				textcase = []
 				continue
-			textcase.append(line.strip())
-		textcases.append(list(filter(None, textcase)))
+			if line.strip():
+				textcase.append((lineno, line.strip()))
+		textcases.append(textcase)
 		
 		for textcase in textcases:
 			case = Case(textcase)
+			print(case.Mach)
 			if case.RollRate or case.YawRate or case.PitchRate or case.Mach != mach:
 				continue
 			if not case.AoA in cases:
