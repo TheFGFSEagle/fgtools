@@ -23,7 +23,7 @@ Download or `git clone` this repo and put it in a place of your choice, say `C:\
 git clone https://github.com/TheFGFSEagle/fgtools
 ```
 
-Copy the python code you want to use and paste it in the repository folder (outside of the subfolders).
+Copy the file of the python script you want to use and paste it in the repository folder (outside of the subfolders).
 
 ensure scipy is installed:
 
