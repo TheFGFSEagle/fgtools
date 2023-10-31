@@ -12,8 +12,7 @@ import zipfile
 
 import shapely.geometry
 
-from fgtools.geo import Rectangle, Coord, get_fg_tile_coords, get_fg_tile_span, get_fg_tile_indices, get_fg_tile_paths
-from fgtools.utils.constants import FG_TILE_HEIGHT
+from fgtools.geo import Rectangle, Coord, get_fg_tile_coords, get_fg_tile_span, get_fg_tile_indices, get_fg_tile_paths, FG_TILE_HEIGHT
 from fgtools import aptdat
 from fgtools.utils.files import find_input_files, get_cached_file, get_newest_mtime
 from fgtools.utils import padded_print, read_timestamp, write_timestamp, format_size, download, run_command
