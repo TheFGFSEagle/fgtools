@@ -406,7 +406,7 @@ class Airport:
 		
 		if "datum_lon" in self.metadata and "datum_lat" in self.metadata:
 			self.lon = float(self.metadata["datum_lon"].value)
-			self.lat = float(self.metadata["datum_lat"])
+			self.lat = float(self.metadata["datum_lat"].value)
 		else:
 			self.lon = self.bbox.midpoint().lon
 			self.lat = self.bbox.midpoint().lat
