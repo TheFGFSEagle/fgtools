@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fgtools"
+version = "1.0.0"
+authors = [{ name = "TheFGFSEagle" }]
+readme = "README.md"
+license.file = "LICENSE"
+description = "Tools for FlightGear scenery generation and aircraft development"
+requires-python = ">=3.8"
+dependencies = ["scipy", "plum-dispatch"]
+classifiers = [
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/TheFGFSEagle/fgtools"
+"Bug Tracker" = "https://github.com/TheFGFSEagle/fgtools/issues"
