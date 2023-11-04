@@ -21,6 +21,9 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 
+[tool.setuptools.packages.find]
+where = ["fgtools"]
+
 [project.urls]
 "Homepage" = "https://github.com/TheFGFSEagle/fgtools"
 "Bug Tracker" = "https://github.com/TheFGFSEagle/fgtools/issues"
