@@ -78,7 +78,7 @@ def write_aptdat_files(airports_list, output, txt_output, overwrite):
 		
 	print("Downloading and writing airports … done                                                                                                     ")
 
-if __name__ == "__main__":
+def main():
 	argp = argparse.ArgumentParser(description="Pulls apt.dat files from the XPlane Gateway selected either by a bounding box or ICAO codes")
 	
 	argp.add_argument(
@@ -136,4 +136,7 @@ if __name__ == "__main__":
 			print(airport["AirportCode"] + "\t", (airport.get("metadata", {}) or {}).get("icao_code", "\t"), sep="\t")
 	
 	write_aptdat_files(airports_list_filtered, args.output, args.txt_output, args.overwrite)
+
+if __name__ == "__main__":
+	main()
 

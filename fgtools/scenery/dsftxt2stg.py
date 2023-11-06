@@ -119,7 +119,7 @@ def write_stg_files(objects, output):
 		i += 1	
 	print()
 
-if __name__ == "__main__":
+def main():
 	argp = argparse.ArgumentParser(description="Convert XPlane scenery DSF/TXT files to FlightGear scenery STG files")
 	
 	argp.add_argument(
@@ -172,3 +172,8 @@ if __name__ == "__main__":
 	stg_groups = group_objects_by_tile(elev_objects)
 	print("done")
 	write_stg_files(stg_groups, args.output)
+
+if __name__ == '__main__':
+	main()
+
+

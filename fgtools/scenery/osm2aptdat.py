@@ -447,7 +447,7 @@ def write_aptdat_files(output, airports, merge=False):
 	writer.add_airports(airports)
 	writer.write(output, merge=merge, overwrite_func=check_aptdat_written_by_this)
 
-if __name__ == "__main__":
+def main():
 	logging.getLogger("OSMPythonTools").setLevel(logging.FATAL)
 	
 	argp = argparse.ArgumentParser(description="query airports from OSM and convert the results to apt.dat files")
@@ -487,4 +487,9 @@ if __name__ == "__main__":
 		airports = query_airports_by_bbox(left=args.bbox[0], lower=args.bbox[1], right=args.bbox[2], upper=args.bbox[3])
 	
 	write_aptdat_files(args.output, airports, merge=args.merge)
+
+if __name__ == '__main__':
+	main()
+
+
 	

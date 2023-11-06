@@ -52,7 +52,7 @@ def write_pdf(paths, output, keep):
 		os.remove(path)
 	print("done")
 
-if __name__ == "__main__":
+def main()
 	argp = argparse.ArgumentParser()
 	
 	argp.add_argument(
@@ -84,4 +84,9 @@ if __name__ == "__main__":
 	
 	paths = download_pages(args.url, args.output, args.resume)
 	write_pdf(paths, args.output, args.keep)
+
+if __name__ == '__main__':
+	main()
+
+
 

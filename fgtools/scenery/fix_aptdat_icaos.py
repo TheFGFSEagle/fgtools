@@ -126,7 +126,7 @@ def process(files, output):
 			shutil.move(outp, newoutp)
 	print(f"Writing new apt.dat files … {i / total * 100:.1f}% ({i} of {total} done)", end=" " * 100 + "\n")
 
-if __name__ == "__main__":
+def main():
 	argp = argparse.ArgumentParser(description="Fix apt.dat ICAO's - some apt.dat files from the XPlane gateway have them of the form XAY0016 - this script gets the right ICAO from OurAirports data (if the airport is found there)")
 	
 	argp.add_argument(
@@ -146,4 +146,9 @@ if __name__ == "__main__":
 	
 	infiles = find_input_files(args.input)
 	process(infiles, args.output)
+
+if __name__ == '__main__':
+	main()
+
+
 

@@ -151,7 +151,7 @@ def print_table(coeffs, indent, precision, use_wing_alpha):
 	print("</table>")
 
 
-if __name__ == "__main__":
+def main():
 	argp = argparse.ArgumentParser(description="vsphist2jsbtable.py - Takes a VSPAERO .history file and a coefficient as input and outputs a JSBSim interpolation table for that coefficient from the VSPAERO cases")
 	
 	argp.add_argument(
@@ -253,4 +253,9 @@ if __name__ == "__main__":
 	else:
 		coeffs = get_raw_coeffs(cases, args.axis, args.coeff)
 	print_table(coeffs, args.indentation, args.precision, args.use_wing_alpha)
+
+if __name__ == '__main__':
+	main()
+
+
 

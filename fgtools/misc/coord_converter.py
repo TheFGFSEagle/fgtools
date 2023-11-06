@@ -12,7 +12,7 @@ def format_skyvector(lon, lat):
 	ns = "NS"[int(lat < 0)]
 	return f"{int(latd):02d}{int(latm * 100):04d}{ns}{int(lond):03d}{int(lonm * 100):04d}{ew}"
 
-if __name__ == "__main__":
+def main():
 	argp = argparse.ArgumentParser(description="Convert GPS coordinates between different formats")
 	
 	argp.add_argument(
@@ -43,4 +43,9 @@ if __name__ == "__main__":
 	else:
 		result = "Output format is not implemented yet"
 	print(result)
+
+if __name__ == '__main__':
+	main()
+
+
 
