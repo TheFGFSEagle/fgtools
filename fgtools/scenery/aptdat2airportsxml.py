@@ -458,7 +458,7 @@ def write_ils_files(ils_d, output, elevpipe, overwrite):
 		i += 1
 	print()
 
-if __name__ == "__main__":
+def main():
 	argp = argparse.ArgumentParser(description="Convert apt.dat files to groundnet.xml files")
 	
 	argp.add_argument(
@@ -526,4 +526,9 @@ if __name__ == "__main__":
 		write_tower_files(towers, args.output, elevpipe, args.overwrite)
 		write_threshold_files(runways, args.output, args.overwrite)
 		write_ils_files(ils_d, args.output, elevpipe, args.overwrite)
+
+if __name__ == '__main__':
+	main()
+
+
 

@@ -114,7 +114,7 @@ def print_table(table, precision):
 	for row in table:
 		print("\t".join(map(lambda f: str(round(f, precision)), row)))
 	
-if __name__ == "__main__":
+def main():
 	argp = argparse.ArgumentParser(description="perform various operations on one or more tables")
 	
 	argp.add_argument(
@@ -143,4 +143,9 @@ if __name__ == "__main__":
 	tables = parse_tables(tables)
 	table = perform_operation(tables, args.operation)
 	print_table(table, args.precision)
+
+if __name__ == '__main__':
+	main()
+
+
 

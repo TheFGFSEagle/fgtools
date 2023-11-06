@@ -51,7 +51,7 @@ def make_tables(data, maximum, indentation="\t", resolution=0.05):
 				
 
 
-if __name__ == "__main__":
+def main():
 	argp = argparse.ArgumentParser(description="javaprop2jsbcpct.py - converts JavaProp propeller data into Cp and Ct tables for a JSBsim propeller\nReplace the C_THRUST and C_POWER tables in your JSBsim propeller file with the output of this script.")
 	
 	argp.add_argument(
@@ -131,4 +131,8 @@ if __name__ == "__main__":
 	print(output["Cp"])
 	print(args.indentation * 2 + "</tableData>")
 	print(args.indentation + "</table>")
+
+if __name__ == "__main__":
+	main()
+
 
