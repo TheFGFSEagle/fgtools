@@ -9,7 +9,10 @@ import subprocess
 import typing
 import json
 import zipfile
-import importlib.resources.files
+if sys.version_info[0:2] >= (3, 9):
+	from importlib.resources import files as importlib_resources_files
+else:
+	from importlib_resources import files as importlib_resources_files
 
 import shapely.geometry
 
@@ -442,8 +445,7 @@ def ogr_decode(workspace, bbox, cmd, material, work_dir, data_file):
 	
 	env = os.environ.copy()
 	if not "OSM_CONFIG_FILE" in env:
-		env["OSM_CONFIG_FILE"] = importlib.resources.files("fgtools.scenery").joinpath("osmconf.ini")
-		print(env["OSM_CONFIG_FILE"])
+		env["OSM_CONFIG_FILE"] = importlib_resources_files("fgtools.scenery").joinpath("osmconf.ini")
 	p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, env=env)
 	if p.returncode != 0:
 		log_path = os.path.join(workspace, "log", "osm", os.path.split(timestamp_file)[-1])
