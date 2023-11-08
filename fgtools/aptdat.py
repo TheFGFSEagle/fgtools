@@ -142,7 +142,7 @@ class Object:
 
 class Helipad(Object):
 	@dispatch
-	def __init__(self, id, lon, lat, heading, length, width, surface, shoulder=RunwayShoulderCode.NoShoulder,
+	def __init__(self, id, lon, lat, heading, length, width, surface, markings=0, shoulder=RunwayShoulderCode.NoShoulder,
 				smoothness=0.25, edge_lights=False):
 		Object.__init__(self)
 		self.id = id
@@ -152,6 +152,7 @@ class Helipad(Object):
 		self.length = length
 		self.width = width
 		self.surface = surface
+		self.markings = markings
 		self.shoulder = shoulder
 		self.smoothness = smoothness
 		self.edge_lights = edge_lights
@@ -159,18 +160,19 @@ class Helipad(Object):
 	@dispatch
 	def __init__(self):
 		Object.__init__(self)
-		self.id = self.lon = self.lat = self.heading = self.length = self.width = self.surface = self.shoulder = self.smoothness = self.edge_lights = None
+		self.id = self.lon = self.lat = self.heading = self.length = self.width = self.surface = self.markings = self.shoulder = self.smoothness = self.edge_lights = None
 	
 	def read(self, line):
 		Object.read(self, line)
-		self.id, self.lat, self.lon, self.heading, self.length, self.width, self.surface, self.shoulder, self.smoothness, self.edge_lights = \
+		print(line)
+		self.id, self.lat, self.lon, self.heading, self.length, self.width, self.surface, self.markings, self.shoulder, self.smoothness, self.edge_lights = \
 						line[1], float(line[2]), float(line[3]), float(line[4]), float(line[5]), float(line[6]), SurfaceCode[int(line[7])], \
-						RunwayShoulderCode[int(line[8])], float(line[9]), bool(int(line[10]))
+						int(line[8]), RunwayShoulderCode[int(line[9])], float(line[10]), bool(int(line[11]))
 	
 	def write(self, f):
 		Object.write(self. f)
 		f.write((f"102 {self.id} {float(self.lat)} {float(self.lon)} {float(self.heading)} {float(self.length):.2f}" +
-				f" {float(self.width):.2f} {int(self.surface)} {int(self.shoulder)} {float(self.smoothness):.2f} {int(self.edge_lights)}\n"))
+				f" {float(self.width):.2f} {int(self.surface)} {int(self.markings)} {int(self.shoulder)} {float(self.smoothness):.2f} {int(self.edge_lights)}\n"))
 
 class Runway:
 	@dispatch
