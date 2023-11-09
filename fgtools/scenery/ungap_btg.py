@@ -112,9 +112,9 @@ def process_btg_file(nth_input: int, total: int, tile_path: str, terrain_dir: st
 		padded_print(f"Processing BTG file {nth_input + 1} of {total} ({tile_path}) - Creating interpolation tables for border data ({i} of {len(sibling_borders)})", end="\r")
 		sibling_border_interpolator = Interpolator()
 		if side in "ns":
-			attrib = "lat"
-		else:
 			attrib = "lon"
+		else:
+			attrib = "lat"
 		
 		for coord in sibling_borders[side]:
 			sibling_border_interpolator.add_value(getattr(coord, attrib), coord.alt)
@@ -146,7 +146,6 @@ def process_btg_file(nth_input: int, total: int, tile_path: str, terrain_dir: st
 		tri = btg_object.triangle_faces[obj_index].elements[tri_index]
 		for vi in tri.vertex_indices:
 			v = btg_object.vertex_list.elements[0].items[vi]
-			print("old", v.coord.alt)
 			if math.dist(v.coord.lon, tile_rect.left) < VERTEX_DISTANCE_MAX_DEG:
 				v.coord.alt = sibling_border_interpolators["e"].interpolate(v.coord.lat)
 			elif math.dist(v.coord.lon, tile_rect.right) < VERTEX_DISTANCE_MAX_DEG:
@@ -155,7 +154,6 @@ def process_btg_file(nth_input: int, total: int, tile_path: str, terrain_dir: st
 				v.coord.alt = sibling_border_interpolators["s"].interpolate(v.coord.lon)
 			elif math.dist(v.coord.lat, tile_rect.top) < VERTEX_DISTANCE_MAX_DEG:
 				v.coord.alt = sibling_border_interpolators["n"].interpolate(v.coord.lon)
-			print("new", v.coord.alt)
 	padded_print(f"Processing BTG file {nth_input + 1} of {total} ({tile_path}) - Fixing triangles ({len(tri_indices_to_process)} of {len(tri_indices_to_process)})", end="\r")
 	
 	padded_print(f"Processing BTG file {nth_input + 1} of {total} ({tile_path}) - Writing processed BTG file")
