@@ -40,7 +40,7 @@ GEOFABRIK_REGIONS = {
 		'gcc-states', 'india', 'indonesia', 'iran', 'iraq', 'israel-and-palestine', 'japan',
 		'jordan', 'kazakhstan', 'kyrgyzstan', 'laos', 'lebanon', 'malaysia-singapore-brunei', 'maldives',
 		'mongolia', 'myanmar', 'nepal', 'north-korea', 'pakistan', 'philippines',
-		'russian-federation', 'south-korea', 'sri-lanka', 'syria', 'taiwan', 'tajikistan', 'thailand',
+		'south-korea', 'sri-lanka', 'syria', 'taiwan', 'tajikistan', 'thailand',
 		'turkmenistan', 'uzbekistan', 'vietnam', 'yemen'
 	],
 	"australia-oceania": [
@@ -59,11 +59,12 @@ GEOFABRIK_REGIONS = {
 		'germany', 'great-britain', 'greece', 'guernsey-jersey', 'hungary', 'iceland', 'ireland-and-northern-ireland',
 		'isle-of-man', 'italy', 'kosovo', 'latvia', 'liechtenstein', 'lithuania', 'luxembourg', 'macedonia', 'malta',
 		'moldova', 'monaco', 'montenegro', 'netherlands', 'norway', 'poland', 'portugal', 'romania',
-		'russia', 'serbia', 'slovakia', 'slovenia', 'spain', 'sweden', 'switzerland', 'turkey', 'ukraine'
+		'serbia', 'slovakia', 'slovenia', 'spain', 'sweden', 'switzerland', 'turkey', 'ukraine'
 	],
 	"north-america": [
 		'canada', 'greenland', 'mexico', 'us'
 	],
+	"russia": [],
 	"south-america": [
 		'argentina', 'bolivia', 'brazil', 'chile', 'colombia', 'ecuador', 'guyana', 'paraguay', 'peru',
 		'suriname', 'uruguay', 'venezuela'
