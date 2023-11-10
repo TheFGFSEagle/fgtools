@@ -3,6 +3,7 @@
 
 import os
 from appdirs import user_cache_dir
+from importlib.metadata import version
 
 HOME = os.environ.get("HOME", os.path.expanduser("~"))
 CACHEDIR = os.environ.get("FGTOOLS_CACHEDIR", user_cache_dir("fgtools", "TheEagle"))

@@ -12,6 +12,8 @@ import shutil
 import datetime
 from dateutil.parser import parse as parsedate
 
+import tqdm
+
 
 def make_fgelev_pipe(fgelev, fgscenery, fgdata):
 	print("Creating pipe to fgelev … ", end="")
@@ -65,7 +67,7 @@ def format_size(size, decimal_places=1):
 		size /= 1000
 	return f"{size:.{decimal_places}f} {unit}B"
 
-def download(url, path, progress=True, prolog="Downloading '{path}' - ", blocksize=1000, force=False, update=True):
+def download(url, path, progress=True, prolog="Downloading '{path}'", blocksize=1000, force=False, update=True):
 	with requests.get(url, stream=True) as remote:
 		if remote.status_code >= 400:
 			print(f"Error {remote.status_code}: {url}")
@@ -81,29 +83,10 @@ def download(url, path, progress=True, prolog="Downloading '{path}' - ", blocksi
 				return True
 
 		with open(path, "wb") as local:
-			start_time = time.time()
-			last_time = time.time()
-			times = [0] * 1000
-			time_since_last_print = 0
-			i = 0
+			pbar = tqdm.tqdm(desc=prolog.format(path=path), total=content_length, unit="B", unit_scale=True)
 			for chunk in remote.iter_content(chunk_size=blocksize):
-				current_time = time.time()
-				times.append(current_time - last_time)
-				del times[0]
-				time_since_last_print += current_time - last_time
-				last_time = current_time
-				if (time_since_last_print > 0.5):
-					rate = blocksize * 1000 / sum(times)
-					padded_print(prolog.format(path=path) +
-						f"{format_size(i)} of {format_size(content_length)} ({i / content_length * 100:5.1f} %) at " \
-						f"{format_size(rate)}/s", end="\r")
-					time_since_last_print = 0
 				local.write(chunk)
-				i += len(chunk)
-			padded_print(prolog.format(path=path) +
-				f"{format_size(i)} of {format_size(content_length)} ({i / content_length * 100:5.1f} %) at " \
-				f"{format_size(local.tell() / (time.time() - start_time))}/s")
-			local.close()
+				pbar.update(len(chunk))
 	return True
 
 def padded_print(s, pad_str=" ", end=None):
