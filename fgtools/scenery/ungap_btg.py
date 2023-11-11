@@ -17,6 +17,10 @@ def create_border_data(tile_index: int, btg_file: str):
 	print("\nCreating border data")
 	tile_rect = get_fg_tile_bbox(tile_index)
 	border_data = {edge: list() for edge in "nesw"}
+	if not os.path.isfile(btg_file):
+		# assume ocean tile, return None so that in process_btg_file the altitude of the vertices wont be changed
+		return None
+	
 	btg_object = btg.ReaderWriterBTG(btg_file)
 	for v in btg_object.vertex_list.elements[0].items:
 		if math.dist(v.coord.lon, tile_rect.left) < VERTEX_DISTANCE_MAX_DEG:
@@ -50,7 +54,10 @@ def read_border_data(border_file: str):
 	
 	return border_data
 
-def write_border_data(border_file: str, border_data: typing.Mapping[str, typing.Iterable[Coord]]):
+def write_border_data(border_file: str, border_data: typing.Optional[typing.Mapping[str, typing.Iterable[Coord]]]):
+	if not border_data:
+		return
+	 
 	os.makedirs(os.path.dirname(border_file), exist_ok=True)
 	with open(border_file, "w") as f:
 		for side in "nesw":
@@ -62,11 +69,11 @@ def get_border_data(tile_index: int, terrain_dir: str, border_dir: str):
 	tile_path = get_fg_tile_path(tile_index)
 	btg_file = os.path.join(terrain_dir, tile_path + ".btg.gz")
 	if border_dir == "terrain-dir":
-		border_dir == terrain_dir
+		border_dir = terrain_dir
 	border_file = ""
 	if border_dir != "direct":
 		border_file = os.path.join(border_dir, tile_path) + "_edges.dat"
-		if os.path.exists(border_file) and os.path.getmtime(border_file) > os.path.getmtime(btg_file):
+		if os.path.isfile(border_file) and os.path.getmtime(border_file) > os.path.getmtime(btg_file):
 			return read_border_data(border_file)
 	
 	border_data = create_border_data(tile_index, btg_file)
@@ -95,6 +102,8 @@ def process_btg_file(nth_input: int, total: int, tile_path: str, terrain_dir: st
 	for i, side in enumerate(sibling_indices):
 		padded_print(f"Processing BTG file {nth_input + 1} of {total} ({tile_path}) - Getting border data for neighbor BTG files ({i} of {len(sibling_indices)})", end="\r")
 		border_data = get_border_data(sibling_indices[side], terrain_dir, border_dir)
+		if not border_data:
+			sibling_borders[side] = None
 		if side == "n":
 			border_data = border_data["s"]
 		elif side == "e":
@@ -110,6 +119,8 @@ def process_btg_file(nth_input: int, total: int, tile_path: str, terrain_dir: st
 	sibling_border_interpolators = {}
 	for i, side in enumerate(sibling_borders):
 		padded_print(f"Processing BTG file {nth_input + 1} of {total} ({tile_path}) - Creating interpolation tables for border data ({i} of {len(sibling_borders)})", end="\r")
+		if not sibling_borders[side]:
+			sibling_border_interpolators[side] = None
 		sibling_border_interpolator = Interpolator()
 		if side in "ns":
 			attrib = "lon"
@@ -147,13 +158,17 @@ def process_btg_file(nth_input: int, total: int, tile_path: str, terrain_dir: st
 		for vi in tri.vertex_indices:
 			v = btg_object.vertex_list.elements[0].items[vi]
 			if math.dist(v.coord.lon, tile_rect.left) < VERTEX_DISTANCE_MAX_DEG:
-				v.coord.alt = sibling_border_interpolators["e"].interpolate(v.coord.lat)
+				if sibling_border_interpolators["e"]:
+					v.coord.alt = sibling_border_interpolators["e"].interpolate(v.coord.lat)
 			elif math.dist(v.coord.lon, tile_rect.right) < VERTEX_DISTANCE_MAX_DEG:
-				v.coord.alt = sibling_border_interpolators["w"].interpolate(v.coord.lat)
+				if sibling_border_interpolators["w"]:
+					v.coord.alt = sibling_border_interpolators["w"].interpolate(v.coord.lat)
 			elif math.dist(v.coord.lat, tile_rect.bottom) < VERTEX_DISTANCE_MAX_DEG:
-				v.coord.alt = sibling_border_interpolators["s"].interpolate(v.coord.lon)
+				if sibling_border_interpolators["s"]:
+					v.coord.alt = sibling_border_interpolators["s"].interpolate(v.coord.lon)
 			elif math.dist(v.coord.lat, tile_rect.top) < VERTEX_DISTANCE_MAX_DEG:
-				v.coord.alt = sibling_border_interpolators["n"].interpolate(v.coord.lon)
+				if sibling_border_interpolators["n"]:
+					v.coord.alt = sibling_border_interpolators["n"].interpolate(v.coord.lon)
 	padded_print(f"Processing BTG file {nth_input + 1} of {total} ({tile_path}) - Fixing triangles ({len(tri_indices_to_process)} of {len(tri_indices_to_process)})", end="\r")
 	
 	padded_print(f"Processing BTG file {nth_input + 1} of {total} ({tile_path}) - Writing processed BTG file")
