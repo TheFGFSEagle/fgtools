@@ -340,7 +340,7 @@ def process_dem_data(workspace: str, bboxes: typing.Iterable[Rectangle]):
 	timestamp_file = os.path.join(dem_data_folder, "gdalchop")
 	ts = read_timestamp(timestamp_file)
 	for i, bbox in enumerate(bboxes):
-		padded_print(f"Extracting elevation data … {i + 1} of {len(bboxes)} ((n={bbox.top} e={bbox.left} s={bbox.bottom} w={bbox.right})", end="\r")
+		padded_print(f"Chopping elevation data … {i + 1} of {len(bboxes)} ((n={bbox.top} e={bbox.left} s={bbox.bottom} w={bbox.right})", end="\r")
 		tile_paths = list(map(lambda s: s + ".arr.gz", get_fg_tile_paths(bbox)))
 		if get_newest_mtime(hgtfiles) < ts and all(os.path.exists(p) for p in tile_paths) and get_newest_mtime(tile_paths) <= ts:
 			continue
@@ -350,13 +350,13 @@ def process_dem_data(workspace: str, bboxes: typing.Iterable[Rectangle]):
 		cmd = f"gdalchop {dem_work_folder} " + " ".join(hgtfiles) + " -- " + " ".join(map(str, get_fg_tile_indices(bbox)))
 		p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
 		if p.returncode != 0:
-			log_path = os.path.join(workspace, "log", "dem", os.path.split(hgtfile)[-1])
+			log_path = os.path.join(workspace, "log", "dem", f"N{bbox.top}E{bbox.left}S{bbox.bottom}W{bbox.right}.log")
 			os.makedirs(os.path.join(workspace, "log", "dem"), exist_ok=True)
 			with open(log_path, "wb") as log_file:
 				log_file.write(p.stdout)
 			print(f"\nCommand '{cmd}' exited with return code {p.returncode} - see {log_path} for details.")
 			sys.exit(1)
-	padded_print(f"Extracting elevation data … {i + 1} of {len(bboxes)} ((n={bbox.top} e={bbox.left} s={bbox.bottom} w={bbox.right})")
+	padded_print(f"Chopping elevation data … {i + 1} of {len(bboxes)} ((n={bbox.top} e={bbox.left} s={bbox.bottom} w={bbox.right})")
 	write_timestamp(timestamp_file)
 	
 	num_arrfiles = len(find_input_files(dem_work_folder, suffix=".arr.gz"))
