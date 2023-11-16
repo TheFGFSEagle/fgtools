@@ -346,8 +346,8 @@ def process_dem_data(workspace: str, bboxes: typing.Iterable[Rectangle]):
 			continue
 		
 		any_files_updated = True
-		
-		cmd = f"gdalchop {dem_work_folder} " + " ".join(hgtfiles) + " -- " + " ".join(map(str, get_fg_tile_indices(bbox)))
+		hgtfiles_string = " ".join(map(lambda hgtfile: f"\"{hgtfile}\"", hgtfiles))
+		cmd = f"""gdalchop "{dem_work_folder}" {hgtfiles_string} -- {" ".join(map(str, get_fg_tile_indices(bbox)))}"""
 		p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
 		if p.returncode != 0:
 			log_path = os.path.join(workspace, "log", "dem", f"N{bbox.top}E{bbox.left}S{bbox.bottom}W{bbox.right}.log")
@@ -360,7 +360,7 @@ def process_dem_data(workspace: str, bboxes: typing.Iterable[Rectangle]):
 	write_timestamp(timestamp_file)
 	
 	num_arrfiles = len(find_input_files(dem_work_folder, suffix=".arr.gz"))
-	cmd = f"terrafit -m 1000 -x 20000 -e 5 {dem_work_folder}"
+	cmd = f"""terrafit -m 1000 -x 20000 -e 5 "{dem_work_folder}" """
 	p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, text=True, bufsize=1)
 	i = 1
 	cur_path = ""
@@ -424,7 +424,7 @@ def process_airports(workspace, aptdat_files):
 		
 		any_files_updated = True
 		
-		cmd = f"genapts --input={aptdat_file} --work={work_folder} --dem-path=dem --max-slope=1"
+		cmd = f"""genapts --input="{aptdat_file}" --work="{work_folder}" --dem-path="dem" --max-slope=1"""
 		p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
 		if p.returncode != 0:
 			log_path = os.path.join(workspace, "log", "apt", os.path.split(aptdat_file)[-1])
@@ -463,21 +463,21 @@ def ogr_decode_polygon(workspace, bbox, mapping):
 	osm_data_folder = os.path.join(workspace, "data", "osm")
 	data_file = os.path.join(osm_data_folder, f"N{bbox.top}W{bbox.left}S{bbox.bottom}E{bbox.right}.osm.pbf")
 	work_dir = os.path.join(workspace, "work", mapping.material)
-	cmd = f"ogr-decode --area-type {mapping.material} --where \"{mapping.selector}\" {work_dir} {data_file} multipolygons"
+	cmd = f"""ogr-decode --area-type "{mapping.material}" --where "{mapping.selector}" "{work_dir}" "{data_file}" multipolygons"""
 	return ogr_decode(workspace, bbox, cmd, mapping.material, work_dir, data_file)
 
 def ogr_decode_line(workspace, bbox, mapping):
 	osm_data_folder = os.path.join(workspace, "data", "osm")
 	data_file = os.path.join(osm_data_folder, f"N{bbox.top}W{bbox.left}S{bbox.bottom}E{bbox.right}.osm.pbf")
 	work_dir = os.path.join(workspace, "work", mapping.material)
-	cmd = f"ogr-decode --line-width {mapping.line_width} --line-width-column width --area-type {mapping.material} --where \"{mapping.selector}\" {work_dir} {data_file} lines"
+	cmd = f"""ogr-decode --line-width "{mapping.line_width}" --line-width-column width --area-type "{mapping.material}" --where "{mapping.selector}" "{work_dir}" "{data_file}" lines"""
 	return ogr_decode(workspace, bbox, cmd, mapping.material, work_dir, data_file)
 
 def ogr_decode_point(workspace, bbox, mapping):
 	osm_data_folder = os.path.join(workspace, "data", "osm")
 	data_file = os.path.join(osm_data_folder, f"N{bbox.top}W{bbox.left}S{bbox.bottom}E{bbox.right}.osm.pbf")
 	work_dir = os.path.join(workspace, "work", mapping.material)
-	cmd = f"ogr-decode --point-width {mapping.line_width} --area-type {mapping.material} --where \"{mapping.selector}\" {work_dir} {data_file} points"
+	cmd = f"""ogr-decode --point-width "{mapping.line_width}" --area-type "{mapping.material}" --where "{mapping.selector}" "{work_dir}" "{data_file}" points"""
 	return ogr_decode(workspace, bbox, cmd, mapping.material, work_dir, data_file)
 
 def process_landuse_data(workspace: str, bboxes: typing.Iterable[Rectangle], regions: typing.Iterable[str]):
@@ -498,8 +498,8 @@ def process_landuse_data(workspace: str, bboxes: typing.Iterable[Rectangle], reg
 			run_command(
 				"osmium extract " +
 					" -b " + ",".join(map(str, (bbox.left, bbox.bottom, bbox.right, bbox.top))) + 
-					" -O -o " + os.path.join(osm_data_folder, f"{os.path.basename(region)}-N{bbox.top}W{bbox.left}S{bbox.bottom}E{bbox.right}.osm.pbf") +
-					 " " + data_file,
+					" -O -o \"" + os.path.join(osm_data_folder, f"{os.path.basename(region)}-N{bbox.top}W{bbox.left}S{bbox.bottom}E{bbox.right}.osm.pbf") +
+					 """\" "{data_file}" """,
 				os.path.join(workspace, "log", "osm", f"osmconvert_{os.path.basename(region)}_N{bbox.top}W{bbox.left}S{bbox.bottom}E{bbox.right}.osm.pbf")
 			)
 			
@@ -510,12 +510,12 @@ def process_landuse_data(workspace: str, bboxes: typing.Iterable[Rectangle], reg
 			data_files = [
 				os.path.join(
 					osm_data_folder,
-					f"{os.path.basename(region)}-N{bbox.top}W{bbox.left}S{bbox.bottom}E{bbox.right}.osm.pbf"
+					f"\"{os.path.basename(region)}-N{bbox.top}W{bbox.left}S{bbox.bottom}E{bbox.right}.osm.pbf\""
 				)
 				for region in regions
 			]
 			run_command(
-				"osmium merge " + " ".join(data_files) + " --overwrite -o " +
+				"osmium merge " + " ".join(data_files) + " --overwrite -o \"" +
 					os.path.join(osm_data_folder, f"N{bbox.top}W{bbox.left}S{bbox.bottom}E{bbox.right}.osm.pbf"),
 				os.path.join(workspace, "log", "osm", f"osmconvert_N{bbox.top}W{bbox.left}S{bbox.bottom}E{bbox.right}.osm.pbf")
 			)
@@ -526,7 +526,7 @@ def process_landuse_data(workspace: str, bboxes: typing.Iterable[Rectangle], reg
 			read_timestamp(landmass_region_file) < max(os.path.getmtime(landmass_file), os.path.getmtime(landmass_region_file)):
 			padded_print(f"Extracting needed OSM data … {i + 1} of {len(bboxes)} (n={bbox.top} e={bbox.left} s={bbox.bottom} w={bbox.right}) from landmass polygons", end="\r")
 			run_command(
-				f"ogr2ogr -clipsrc {bbox.left} {bbox.bottom} {bbox.right} {bbox.top} {landmass_region_file} {landmass_file}",
+				f"""ogr2ogr -clipsrc {bbox.left} {bbox.bottom} {bbox.right} {bbox.top} {landmass_region_file} "{landmass_file}" """,
 				os.path.join(workspace, "log", "osm", f"ogr2ogr_landmass_N{bbox.top}W{bbox.left}S{bbox.bottom}E{bbox.right}.shp")
 			)
 			write_timestamp(landmass_region_file)
@@ -547,7 +547,7 @@ def process_landuse_data(workspace: str, bboxes: typing.Iterable[Rectangle], reg
 		
 		data_file = os.path.join(osm_data_folder, f"landmass-N{bbox.top}W{bbox.left}S{bbox.bottom}E{bbox.right}.shp")
 		work_dir = os.path.join(workspace, "work", "Default")
-		cmd = f"ogr-decode --area-type Default {work_dir} {data_file}"
+		cmd = f"""ogr-decode --area-type Default "{work_dir}" "{data_file}" """
 		any_files_updated |= ogr_decode(workspace, bbox, cmd, "Default", work_dir, data_file)
 		
 	padded_print(f"Decoding OSM data … {len(bboxes)} of {len(bboxes)} (n={bbox.top} e={bbox.left} s={bbox.bottom} w={bbox.right})")
@@ -559,9 +559,9 @@ def generate_terrain(workspace: str, bboxes: typing.Iterable[Rectangle], output_
 	num_threads = num_threads or (os.cpu_count() - 1) or 1
 	for i, bbox in enumerate(bboxes):
 			#f"--min-lon={bbox.left} --min-lat={bbox.bottom} --max-lon={bbox.right} --max-lat={bbox.top} " + \
-		cmd = f"tg-construct --threads={num_threads} --output-dir={output_path} --work-dir={work_dir} " + \
+		cmd = f"""tg-construct --threads={num_threads} --output-dir="{output_path}" --work-dir="{work_dir}" """ + \
 			"--tile-id=" + " --tile-id=".join(map(str, get_fg_tile_indices(bbox))) + " " + \
-			" ".join(sorted({mapping.material for mapping in OSM_MATERIAL_MAPPINGS}) + ["dem", "AirportArea", "AirportObj", "Default"])
+			" ".join(sorted({f"\"{mapping.material}\"" for mapping in OSM_MATERIAL_MAPPINGS}) + ["dem", "AirportArea", "AirportObj", "Default"])
 		p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, text=True, bufsize=1)
 		j = 0
 		num_tiles = 0
