@@ -9,6 +9,7 @@ import subprocess
 import typing
 import json
 import zipfile
+import shutil
 if sys.version_info[0:2] >= (3, 9):
 	from importlib.resources import files as importlib_resources_files
 else:
@@ -413,6 +414,17 @@ def process_airports(workspace, aptdat_files):
 						outf.write(chunk)
 						copied_bytes += len(chunk)
 	padded_print(f"Copying apt.dat files … {len(aptdat_files)} of {len(aptdat_files)} ({os.path.basename(aptdat_file)}) - {format_size(copied_bytes)} of {format_size(total_size)}")
+	
+	genapts_possibilities = ["genapts", "genapts850"]
+	genapts = None
+	for genapts_possibility in genapts_possibilities:
+		if shutil.which(genapts_possibility):
+			genapts = genapts_possibility
+			break
+	
+	if not genapts:
+		print("No genapts executable found, cannot build airports - exiting !")
+		sys.exit(1)
 	
 	timestamp_file = os.path.join(apt_data_folder, "genapts")
 	ts = read_timestamp(timestamp_file)
