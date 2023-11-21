@@ -418,6 +418,7 @@ def process_airports(workspace, aptdat_files):
 	genapts_possibilities = ["genapts", "genapts850"]
 	genapts = None
 	for genapts_possibility in genapts_possibilities:
+		print("Trying genapts executable name:", genapts_possibility, "result:", shutil.which(genapts_possibility))
 		if shutil.which(genapts_possibility):
 			genapts = genapts_possibility
 			break
