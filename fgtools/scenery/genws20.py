@@ -418,7 +418,6 @@ def process_airports(workspace, aptdat_files):
 	genapts_possibilities = ["genapts", "genapts850"]
 	genapts = None
 	for genapts_possibility in genapts_possibilities:
-		print("Trying genapts executable name:", genapts_possibility, "result:", shutil.which(genapts_possibility))
 		if shutil.which(genapts_possibility):
 			genapts = genapts_possibility
 			break
@@ -437,7 +436,7 @@ def process_airports(workspace, aptdat_files):
 		
 		any_files_updated = True
 		
-		cmd = f"""genapts --input="{aptdat_file}" --work="{work_folder}" --dem-path="dem" --max-slope=1"""
+		cmd = f"""\"{genapts}" --input="{aptdat_file}" --work="{work_folder}" --dem-path="dem" --max-slope=1"""
 		p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
 		if p.returncode != 0:
 			log_path = os.path.join(workspace, "log", "apt", os.path.split(aptdat_file)[-1])
