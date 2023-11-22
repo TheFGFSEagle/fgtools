@@ -24,7 +24,8 @@ class JSPage:
 	def get_image(self):
 		text = requests.get(self.url).text
 		images = list(map(lambda s: BeautifulSoup(s.replace("\\", ""), features="lxml").body.find("img"), re.findall(img_pattern, text)))
-		print(len(images))
+		if not images:
+			return None
 		src_image = Image.open(requests.get(images[0]["orig"], stream=True).raw)
 		pil_image = Image.new("RGB", (self.width, self.height))
 		pil_image.paste((255, 255, 255), (0, 0, pil_image.size[0], pil_image.size[1]))
@@ -72,10 +73,14 @@ def download_pages(url, output):
 	pages = sorted(parse_pages_script(str(pages_script)), key=lambda p: p.number)
 	
 	paths = []
-	for page in pages:
+	for i, page in enumerate(pages):
+		print(f"Downloading page {i} of {len(pages)}", end="\r")
 		path = os.path.join(constants.CACHEDIR, os.path.split(output)[-1] + f"-{page.number}.jpg")
-		paths.append(path)
-		page.get_image().save(path, "JPEG")
+		image = page.get_image()
+		if image:
+			paths.append(path)
+			image.save(path, "JPEG")
+	print()
 	
 	return paths
 
