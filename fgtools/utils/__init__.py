@@ -120,3 +120,6 @@ def run_command(cmd, error_log_path=None):
 		print(f"\nCommand '{cmd}' exited with return code {p.returncode} - see {error_log_path} for details.")
 	return p.returncode
 
+def quote(s, quote="\"", n=1):
+	return (quote * n) + str(s) + (quote * n)
+
