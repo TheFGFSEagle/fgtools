@@ -10,6 +10,7 @@ import typing
 import json
 import zipfile
 import shutil
+import logging
 if sys.version_info[0:2] >= (3, 9):
 	from importlib.resources import files as importlib_resources_files
 else:
@@ -18,7 +19,7 @@ else:
 import shapely.geometry
 
 from fgtools.geo import Rectangle, Coord, get_fg_tile_coords, get_fg_tile_span, get_fg_tile_indices, get_fg_tile_paths, FG_TILE_HEIGHT
-from fgtools import aptdat
+from fgtools import aptdat, get_logger
 from fgtools.utils.files import find_input_files, get_cached_file, get_newest_mtime
 from fgtools.utils import padded_print, read_timestamp, write_timestamp, format_size, download, run_command, quote
 
@@ -198,7 +199,7 @@ def find_region(coord: Coord) -> str:
 			break
 	
 	if not continent:
-		print(f"Warning: found no continent for lon={coord.lon} lat={coord.lat} !")
+		get_logger().warn(f"Warning: found no continent for lon={coord.lon} lat={coord.lat} !")
 		return
 	
 	for region in GEOFABRIK_REGIONS[continent]:
@@ -243,16 +244,17 @@ def find_osm_regions(bboxes: typing.Iterable[Rectangle]):
 	return regions
 
 def download_osm_data(regions: typing.Iterable[str], workspace: str):
-	print("Getting OSM landuse data …")
 	osm_data_folder = os.path.join(workspace, "data", "osm")
 	os.makedirs(osm_data_folder, exist_ok=True)
 	
 	osm_zips = []
 	any_data_files_updated = False
+	pbar = tqdm.tqdm(desc="Downloading OSM landuse data for regions", total=len(regions), unit=" regions")
 	for i, region in enumerate(regions):
 		path = os.path.join(osm_data_folder, region.split("/")[-1] + ".osm.pbf")
 		osm_zips.append(path)
 		old_mtime = os.path.getmtime(path) if os.path.exists(path) else -1
+		pbar.update(1)
 		if not download(
 			GEOFABRIK_DOWNLOAD_URL + region + "-latest.osm.pbf",
 			path,
@@ -285,7 +287,6 @@ def download_osm_data(regions: typing.Iterable[str], workspace: str):
 			any_data_files_updated = True
 
 def download_dem_data(bboxes: typing.Iterable[Rectangle], workspace: str):
-	print("Getting elevation data …")
 	dem_data_folder = os.path.join(workspace, "data", "dem")
 	os.makedirs(dem_data_folder, exist_ok=True)
 	dempkgs = {}
@@ -349,19 +350,21 @@ def process_dem_data(workspace: str, bboxes: typing.Iterable[Rectangle]):
 		any_files_updated = True
 		hgtfiles_string = " ".join(map(quote, hgtfiles))
 		cmd = f"gdalchop {quote(dem_work_folder)} {hgtfiles_string} -- {' '.join(map(str, get_fg_tile_indices(bbox)))}"
+		get_logger().debug(f"Running command: {cmd}")
 		p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
 		if p.returncode != 0:
 			log_path = os.path.join(workspace, "log", "dem", f"N{bbox.top}E{bbox.left}S{bbox.bottom}W{bbox.right}.log")
 			os.makedirs(os.path.join(workspace, "log", "dem"), exist_ok=True)
 			with open(log_path, "wb") as log_file:
 				log_file.write(p.stdout)
-			print(f"\nCommand '{cmd}' exited with return code {p.returncode} - see {log_path} for details.")
+			get_logger().fatal(f"\nCommand '{cmd}' exited with return code {p.returncode} - see {log_path} for details.")
 			sys.exit(1)
 	padded_print(f"Chopping elevation data … {i + 1} of {len(bboxes)} ((n={bbox.top} e={bbox.left} s={bbox.bottom} w={bbox.right})")
 	write_timestamp(timestamp_file)
 	
 	num_arrfiles = len(find_input_files(dem_work_folder, suffix=".arr.gz"))
 	cmd = f"terrafit -m 1000 -x 20000 -e 5 {quote(dem_work_folder)}"
+	get_logger().debug(f"Running command: {cmd}")
 	p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, text=True, bufsize=1)
 	i = 1
 	cur_path = ""
@@ -380,7 +383,7 @@ def process_dem_data(workspace: str, bboxes: typing.Iterable[Rectangle]):
 			os.makedirs(os.path.join(workspace, "log", "dem"))
 			with open(log_path, "wb") as log_file:
 				log_file.write(p.stdout)
-			print(f"\nCommand '{cmd}' exited with return code {p.returncode} - see {log_path} for details.")
+			get_logger().fatal(f"\nCommand '{cmd}' exited with return code {p.returncode} - see {log_path} for details.")
 			sys.exit(1)
 	padded_print(f"Fitting elevation data … {num_arrfiles} of {num_arrfiles}")
 	
@@ -404,7 +407,7 @@ def process_airports(workspace, aptdat_files):
 			break
 	
 	if not genapts:
-		print("No genapts executable found, cannot build airports - exiting !")
+		get_logger().fatal("No genapts executable found, cannot build airports - exiting !")
 		sys.exit(1)
 	
 	timestamp_file = os.path.join(apt_data_folder, "genapts")
@@ -418,13 +421,14 @@ def process_airports(workspace, aptdat_files):
 		any_files_updated = True
 		
 		cmd = f"{quote(genapts)} --input={quote(aptdat_file)} --work={quote(work_folder)} --dem-path=dem --max-slope=1"
+		get_logger().debug(f"Running command: {cmd}")
 		p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
 		if p.returncode != 0:
 			log_path = os.path.join(workspace, "log", "apt", os.path.split(aptdat_file)[-1])
 			os.makedirs(os.path.join(workspace, "log", "apt"), exist_ok=True)
 			with open(log_path, "wb") as log_file:
 				log_file.write(p.stdout)
-			print(f"\nCommand '{cmd}' exited with return code {p.returncode} - see {log_path} for details.")
+			get_logger().fatal(f"\nCommand '{cmd}' exited with return code {p.returncode} - see {log_path} for details.")
 			sys.exit(1)
 	padded_print(f"Processing apt.dat files … {len(aptdat_files)} of {len(aptdat_files)} ({os.path.basename(aptdat_file)})")
 	write_timestamp(aptdat_file)
@@ -440,13 +444,14 @@ def ogr_decode(workspace, bbox, cmd, material, work_dir, data_file):
 	env = os.environ.copy()
 	if not "OSM_CONFIG_FILE" in env:
 		env["OSM_CONFIG_FILE"] = importlib_resources_files("fgtools.scenery").joinpath("osmconf.ini")
+	get_logger().debug(f"Running command: {cmd}")
 	p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, env=env)
 	if p.returncode != 0:
 		log_path = os.path.join(workspace, "log", "osm", os.path.split(timestamp_file)[-1])
 		os.makedirs(os.path.join(workspace, "log", "osm"), exist_ok=True)
 		with open(log_path, "wb") as log_file:
 			log_file.write(p.stdout)
-		print(f"\nCommand '{cmd}' exited with return code {p.returncode} - see {log_path} for details.")
+		get_logger().fatal(f"\nCommand '{cmd}' exited with return code {p.returncode} - see {log_path} for details.")
 		sys.exit(1)
 	
 	write_timestamp(timestamp_file)
@@ -554,6 +559,7 @@ def generate_terrain(workspace: str, bboxes: typing.Iterable[Rectangle], output_
 		cmd = f"tg-construct --threads={num_threads} --output-dir={quote(output_path)} --work-dir={quote(work_dir)} " + \
 			"--tile-id=" + " --tile-id=".join(map(str, get_fg_tile_indices(bbox))) + " " + \
 			" ".join(sorted({quote(mapping.material) for mapping in OSM_MATERIAL_MAPPINGS}) + ["dem", "AirportArea", "AirportObj", "Default"])
+		get_logger().debug(f"Running command: {cmd}")
 		p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, text=True, bufsize=1)
 		j = 0
 		num_tiles = 0
@@ -576,7 +582,7 @@ def generate_terrain(workspace: str, bboxes: typing.Iterable[Rectangle], output_
 				os.makedirs(os.path.join(workspace, "log", "terrain"), exist_ok=True)
 				with open(log_path, "w") as log_file:
 					log_file.write(p.stdout.read())
-				print(f"\nCommand '{cmd}' exited with return code {p.returncode} - see {log_path} for details.")
+				get_logger().fatal(f"\nCommand '{cmd}' exited with return code {p.returncode} - see {log_path} for details.")
 				sys.exit(1)
 	
 	padded_print(f"Generating terrain … {len(bboxes)} of {len(bboxes)} (n={bbox.top} e={bbox.left} s={bbox.bottom} w={bbox.right})")
@@ -610,8 +616,21 @@ def main():
 		default=0,
 		type=int
 	)
+	argp.add_argument(
+		"--loglevel",
+		help="Set logging level",
+		default="warning",
+		choices=["debug", "info", "warn", "error", "fatal"]
+	)
 	
 	args = argp.parse_args()
+	
+	args.loglevel = args.loglevel.upper()
+	if hasattr(logging, args.loglevel):
+		loglevel = getattr(logging, args.loglevel)
+	else:
+		loglevel = logging.WARNING
+	get_logger().setLevel(loglevel)
 	
 	aptdat_files = find_input_files(args.input, suffix=".dat")
 	apt_reader = aptdat.ReaderWriterAptDat()
@@ -636,3 +655,4 @@ def main():
 
 if __name__ == "__main__":
 	main()
+

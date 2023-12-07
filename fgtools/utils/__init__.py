@@ -14,6 +14,7 @@ from dateutil.parser import parse as parsedate
 
 import tqdm
 
+from fgtools import get_logger
 
 def make_fgelev_pipe(fgelev, fgscenery, fgdata):
 	print("Creating pipe to fgelev … ", end="")
@@ -70,7 +71,7 @@ def format_size(size, decimal_places=1):
 def download(url, path, progress=True, prolog="Downloading '{path}'", blocksize=1000, force=False, update=True):
 	with requests.get(url, stream=True) as remote:
 		if remote.status_code >= 400:
-			print(f"Error {remote.status_code}: {url}")
+			get_logger().error(f"Request to {url} failed with status code {remote.status_code}")
 			return False
 		
 		content_length = int(remote.headers["Content-Length"])
@@ -111,13 +112,14 @@ def write_timestamp(path):
 
 def run_command(cmd, error_log_path=None):
 	error_log_path = (error_log_path or cmd.replace("/", "_")) + ".log"
+	get_logger().debug(f"Running command: {cmd}")
 	p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
 	if p.returncode != 0:
 		os.makedirs(os.path.dirname(error_log_path) or ".", exist_ok=True)
 		with open(error_log_path, "wb") as log_file:
 			log_file.write(cmd.encode("utf-8") + b"\n\n")
 			log_file.write(p.stdout)
-		print(f"\nCommand '{cmd}' exited with return code {p.returncode} - see {error_log_path} for details.")
+		get_logger().fatal(f"\nCommand '{cmd}' exited with return code {p.returncode} - see {error_log_path} for details.")
 	return p.returncode
 
 def quote(s, quote="\"", n=1):
