@@ -8,6 +8,7 @@ import sys
 
 from fgtools.dsf2stg_lookup import lookup
 from fgtools import utils
+from fgtools.utils.files import find_input_files
 
 cars = [
 	"hatchback_red.ac",
@@ -158,7 +159,7 @@ def main():
 	
 	print("Searching for DSF/TXT files … ", end="")
 	sys.stdout.flush()
-	txt_files = utils.files.find_input_files(args.input)
+	txt_files = find_input_files(args.input)
 	print(f"done, found {len(txt_files)} files")
 	
 	objects = parse_txt_files(txt_files)
