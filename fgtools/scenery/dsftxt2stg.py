@@ -9,6 +9,7 @@ import sys
 from fgtools.dsf2stg_lookup import lookup
 from fgtools import utils
 from fgtools.utils.files import find_input_files
+from fgtools.geo import get_fg_tile_index, get_fg_tile_path
 
 cars = [
 	"hatchback_red.ac",
@@ -83,7 +84,7 @@ def calc_object_elevs(objects, fgelev_pipe):
 def group_objects_by_tile(objects):
 	tiles = {}
 	for o in objects:
-		tile_index = utils.get_fg_tile_index(o["lon"], o["lat"])
+		tile_index = get_fg_tile_index(o["lon"], o["lat"])
 		if not tile_index in tiles:
 			tiles[tile_index] = []
 		tiles[tile_index].append(o)
@@ -97,7 +98,7 @@ def write_stg_files(objects, output):
 	for tile_index in objects:
 		print(f"\rWriting STG files … {i / total * 100:.1f}% ({i} of {total})", end="")
 		sys.stdout.flush()
-		stgpath = os.path.join(output, utils.get_fg_tile_path(objects[tile_index][0]["lon"], objects[tile_index][0]["lat"]) + ".stg")
+		stgpath = os.path.join(output, get_fg_tile_path(objects[tile_index][0]["lon"], objects[tile_index][0]["lat"]) + ".stg")
 		os.makedirs(os.path.join(*os.path.split(stgpath)[:-1]), exist_ok=True)
 		with open(stgpath, "w") as f:
 			for o in objects[tile_index]:
