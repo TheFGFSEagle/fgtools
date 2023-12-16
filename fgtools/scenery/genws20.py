@@ -11,6 +11,7 @@ import json
 import zipfile
 import shutil
 import logging
+import tqdm
 if sys.version_info[0:2] >= (3, 9):
 	from importlib.resources import files as importlib_resources_files
 else:
@@ -564,6 +565,7 @@ def generate_terrain(workspace: str, bboxes: typing.Iterable[Rectangle], output_
 		j = 0
 		num_tiles = 0
 		for line in p.stdout:
+			get_logger().debug("tg-construct printed: " + str(line.strip()))
 			line = line.strip().split()
 			status_text = ""
 			if len(line) >= 3 and line[2].isnumeric():
