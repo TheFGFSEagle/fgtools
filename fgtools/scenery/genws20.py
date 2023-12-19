@@ -169,7 +169,7 @@ OSM_MATERIAL_MAPPINGS = [
 	OsmSelectorLine("waterway = 'canal'", "Canal", 10),
 	OsmSelectorLine("waterway = 'ditch' and (intermittent = 'no' and seasonal is NULL)", "Stream", 1),
 	OsmSelectorLine("waterway = 'ditch' and (intermittent = 'yes' or seasonal is not NULL)", "IntermittentStream", 1),
-	OsmSelectorLine("waterway = 'drain' and intermittent = 'no' and seasonal = 'no'", "Stream", 0.5),
+	OsmSelectorLine("waterway = 'drain' and (intermittent = 'no' and seasonal is NULL)", "Stream", 0.5),
 	OsmSelectorLine("waterway = 'drain' and (intermittent = 'yes' or seasonal is not NULL)", "IntermittentStream", 0.5),
 ]
 
@@ -626,6 +626,10 @@ def main():
 	)
 	
 	args = argp.parse_args()
+	
+	osm_config_file = os.environ.get("OSM_CONFIG_FILE")
+	if osm_config_file and not os.path.isfile(osm_config_file):
+		get_logger().fatal(f"OSM config file {quote(osm_config_file)} does not exist / is not a file - exiting !")
 	
 	args.loglevel = args.loglevel.upper()
 	if hasattr(logging, args.loglevel):
