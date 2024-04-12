@@ -404,7 +404,13 @@ class Airport:
 		
 		runway_lons = list(map(lambda id: self.runways[id].lon1, self.runways)) + list(map(lambda id: self.runways[id].lon2, self.runways))
 		runway_lats = list(map(lambda id: self.runways[id].lat1, self.runways)) + list(map(lambda id: self.runways[id].lat2, self.runways))
-		self.bbox = Rectangle((float(min(runway_lons)), float(min(runway_lats))), (float(max(runway_lons)), float(max(runway_lats))))
+		helipad_lons = list(map(lambda id: self.helipads[id].lon, self.helipads))
+		helipad_lats = list(map(lambda id: self.helipads[id].lat, self.helipads))
+		min_lon = min(runway_lons + helipad_lons)
+		max_lon = max(runway_lons + helipad_lons)
+		min_lat = min(runway_lats + helipad_lats)
+		max_lat = min(runway_lats + helipad_lats)
+		self.bbox = Rectangle((float(min_lon), float(min_lat)), (float(max_lon), float(max_lat)))
 		
 		if "datum_lon" in self.metadata and "datum_lat" in self.metadata:
 			self.lon = float(self.metadata["datum_lon"].value)
