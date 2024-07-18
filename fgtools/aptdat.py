@@ -233,7 +233,7 @@ class WaterRunway(Runway):
 class LandRunway(Runway):
 	@dispatch
 	def __init__(self, width, surface, id1, lon1, lat1, id2, lon2, lat2, 
-						smoothness=0.25, shoulder=RunwayShoulderCode.NoShoulder, center_lights=False,
+						smoothness=0.25, shoulder=RunwayShoulderCode.NoShoulder, shoulder_width=0, center_lights=False,
 						edge_lights=False, distance_signs=False,
 						displ_thresh1=0, blastpad1=0, markings1=RunwayMarkingCode.Visual,
 						appr_lights1=ApproachLightsCode.NoLights, tdz_lights1=False, reil_type1=REILCode.NoREIL,
@@ -243,6 +243,7 @@ class LandRunway(Runway):
 		
 		self.surface = surface
 		self.shoulder = shoulder
+		self.shoulder_width = shoulder_width
 		self.smoothness = smoothness
 		self.center_lights = center_lights
 		self.edge_lights = edge_lights
@@ -265,18 +266,23 @@ class LandRunway(Runway):
 	@dispatch
 	def __init__(self):
 		Runway.__init__(self, None, None, None, None, None, None, None,)
-		self.surface = self.shoulder = self.smoothness = self.center_lights = self.edge_lights = self.distance_signs = \
+		self.surface = self.shoulder = self.shoulder_width = self.smoothness = self.center_lights = self.edge_lights = self.distance_signs = \
 			self.displ_thresh1 = self.blastpad1 = self.markings1 = self.appr_lights1 = self.tdz_lights1 = self.reil_type1 = \
 			self.displ_thresh2 = self.blastpad2 = self.markings2 = self.appr_lights2 = self.tdz_lights2 = self.reil_type2 = None
 	
 	def read(self, line):
 		Runway.read(self, line)
+		shoulder_code = int(line[3])
+		self.shoulder_width = 0
+		if shoulder_code >= 100:
+			self.shoulder_width = int(shoulder_code / 100) / 2
+			shoulder_code = shoulder_code % 100 
 		self.width, self.surface, self.shoulder, self.smoothness, self.center_lights, self.edge_lights, self.distance_signs, \
 			self.id1, self.lat1, self.lon1, self.displ_thresh1, self.blastpad1, \
 			self.markings1, self.appr_lights1, self.tdz_lights1, self.reil_type1, \
 			self.id2, self.lat2, self.lon2, self.displ_thresh2, self.blastpad2, \
 			self.markings2, self.appr_lights2, self.tdz_lights2, self.reil_type2 = \
-						float(line[1]), SurfaceCode[int(line[2])], RunwayShoulderCode[int(line[3])], float(line[4]), \
+						float(line[1]), SurfaceCode[int(line[2])], RunwayShoulderCode[shoulder_code], float(line[4]), \
 						bool(int(line[5])), bool(int(line[6])), bool(int(line[7])), \
 						line[8], float(line[9]), float(line[10]), float(line[11]), float(line[12]), \
 						RunwayMarkingCode[int(line[13])], ApproachLightsCode[int(line[14])], bool(int(line[15])), REILCode[int(line[16])], \
@@ -285,7 +291,7 @@ class LandRunway(Runway):
 	
 	def write(self, f):
 		Runway.write(self, f)
-		f.write((f"100 {float(self.width):.2f} {int(self.surface)} {int(self.shoulder)} {float(self.smoothness)} {int(self.center_lights)}" +
+		f.write((f"100 {float(self.width):.2f} {int(self.surface)} {int(self.shoulder) + int(self.shoulder_width * 100 * 2)} {float(self.smoothness)} {int(self.center_lights)}" +
 				f" {int(self.edge_lights)} {int(self.distance_signs)}" + 
 				f" {self.id1} {float(self.lat1):.8f} {float(self.lon1):.8f} {float(self.displ_thresh1):.2f} {float(self.blastpad1):.2f} {int(self.markings1)}" + 
 				f" {int(self.appr_lights1)} {int(self.tdz_lights1)} {int(self.reil_type1)}" + 
