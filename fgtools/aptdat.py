@@ -418,10 +418,10 @@ class Airport:
 		max_lat = min(runway_lats + helipad_lats)
 		self.bbox = Rectangle((float(min_lon), float(min_lat)), (float(max_lon), float(max_lat)))
 		
-		if "datum_lon" in self.metadata and "datum_lat" in self.metadata:
+		try:
 			self.lon = float(self.metadata["datum_lon"].value)
 			self.lat = float(self.metadata["datum_lat"].value)
-		else:
+		except:
 			self.lon = self.bbox.midpoint().lon
 			self.lat = self.bbox.midpoint().lat
 		
