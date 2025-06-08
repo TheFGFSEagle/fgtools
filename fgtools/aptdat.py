@@ -89,11 +89,21 @@ ApproachLightsCode = CodeEnum(
 )
 
 LineTypeCode = CodeEnum(
-    (
-        "SolidYellow", "DashedYellow", "DoubleSolidYellow", "SolidDashedYellow", "DashedSolidYellow",
-        "HoldShortYellow", "ILS_HoldShort", "YellowZipper", "WhiteZipper", "WhiteEdge", "DashedWhite",
-        "SolidWhite", "SolidOrangeBordered", "SolidBlueBordered", "SolidGreenBordered"
-    ),
+(
+		"NoLine", "TaxiwayCenter", "MiscBoundary", "TaxiwayEdge", "RunwayHold", "OtherHold", "ILSHold",
+		"TaxiwayCenterRunwaySafety", "AircraftQueueLane", "AircraftQueueLaneDouble",
+		"TaxiwayCenterLarge", "TaxiwayCenterRunwaySafetyLarge", "RunwayHoldLarge", "OtherHoldLarge", "ILSHoldLarge",
+		"TaxiwayCenterBordered", "MiscBoundaryBordered", "TaxiwayEdgeBordered", "RunwayHoldBordered",
+		"OtherHoldBordered", "ILSHoldBordered", "TaxiwayCenterRunwaySafetyBordered", "AircraftQueueLaneBordered",
+		"AircraftQueueLaneDoubleBordered", "TaxiwayCenterLargeBordered", "TaxiwayCenterRunwaySafetyLargeBordered",
+		"RunwayHoldLargeBordered", "OtherHoldLargeBordered", "ILSHoldLargeBordered",
+		"TaxiwayShoulder", "RoadwayEdge", "RoadwayEdgeAircraftMovingArea", "RoadwayCenter", "RoadwayEdgeBroken",
+		"RoadwayEdgeWide", "RoadwayCenterWide", "SolidRed", "DashedRed", "SolidRedWide", "SolidOrange",
+		"SolidBlue", "SolidGreen", "RoadwayEdgeBordered", "RoadwayEdgeAircraftMovingAreaBordered",
+		"RoadwayCenterBordered", "RoadwayEdgeBrokenBordered", "RoadwayEdgeWideBordered",
+		"RoadwayCenterWideBordered", "SolidRedBordered", "DashedRedBordered", "SolidRedWideBordered",
+		"SolidOrangeBordered", "SolidBlueBordered", "SolidGreenBordered"
+),
     tuple(range(15)) + tuple(range(51, 65)) + tuple(range(19, 26)) + (30, 31, 32) + (40, 41, 42) + tuple(range(70, 76)) + (80, 81, 82) + (90, 91, 92),
     default_key=15
 )
