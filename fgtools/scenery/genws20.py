@@ -558,6 +558,7 @@ def generate_terrain(workspace: str, bboxes: typing.Iterable[Rectangle], output_
 	for i, bbox in enumerate(bboxes):
 			#f"--min-lon={bbox.left} --min-lat={bbox.bottom} --max-lon={bbox.right} --max-lat={bbox.top} " + \
 		cmd = f"tg-construct --threads={num_threads} --output-dir={quote(output_path)} --work-dir={quote(work_dir)} " + \
+			f"--priorities={quote(importlib_resources_files('fgtools.scenery').joinpath('tg_priorities.txt'))} " + \
 			"--tile-id=" + " --tile-id=".join(map(str, get_fg_tile_indices(bbox))) + " " + \
 			" ".join(sorted({quote(mapping.material) for mapping in OSM_MATERIAL_MAPPINGS}) + ["dem", "AirportArea", "AirportObj", "Default"])
 		get_logger().debug(f"Running command: {cmd}")
