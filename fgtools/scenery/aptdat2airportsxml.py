@@ -490,7 +490,7 @@ def main():
 		"-s", "--fgscenery",
 		help="Path to FlightGear scenery directories containing Terrain, more than one directory can be passed.",
 		nargs="+",
-		default=["~/TerraSync", "~/TerraSync/TerraSync", "TerraSync", "TerraSync/TerraSync"]
+		default=["~/TerraSync", "~/TerraSync/TerraSync", "TerraSync", "TerraSync/TerraSync", "~/.fgfs/TerraSync"]
 	)
 	
 	argp.add_argument(
