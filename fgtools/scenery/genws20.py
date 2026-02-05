@@ -132,7 +132,7 @@ OSM_MATERIAL_MAPPINGS = [
 	OsmSelectorPolygon("natural = 'wetland'", "FloodLand"),
 	OsmSelectorPolygon("wetland = 'marsh'", "Marsh"),
 	OsmSelectorPolygon("wetland = 'saltmarsh'", "SaltMarsh"),
-	OsmSelectorPolygon("wetland = 'tidalflat'", "Tidal"),
+	OsmSelectorPolygon("wetland = 'tidalflat'", "Littoral"),
 	OsmSelectorPolygon("wetland = 'mangrove'", "Mangrove"),
 	OsmSelectorPolygon("wetland = 'bog'", "Bog"),
 	OsmSelectorPolygon("water = 'river' or waterway = 'riverbank'", "River"),

@@ -1,5 +1,5 @@
-Ortho                  landmass
-Ocean                  ocean
+Ortho
+Ocean
 
 Hole                   hole
 Freeway                road
